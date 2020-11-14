@@ -1,8 +1,7 @@
 #include <iostream>
-
 using namespace std;
 
-int main(int, char **const) {
-    cerr << "TODO: Implement a compiler." << std::endl;
+int main(int, char **const)
+{
     return EXIT_FAILURE;
 }
