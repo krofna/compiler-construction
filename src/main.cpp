@@ -13,10 +13,10 @@ int main(int args, char **cargs)
     }
     
     vector<token> tokens = tokenize_file(cargs[2]);
-    for(auto [i, j, col, row] : tokens)
-        (i ? cout : cerr) << cargs[1] << ':' << row
-                          << ':' << col << ": " << i
-                          << ' ' << j << '\n';
+    for(auto tok : tokens)
+        (tok.type ? cout : cerr) << cargs[2] << ':' << tok.row
+                          << ':' << tok.col << ": " << tok.type
+                          << ' ' << tok.str << '\n';
 
     for(auto tok : tokens)
         if (tok.type == INVALID)
