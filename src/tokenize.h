@@ -27,3 +27,4 @@ struct token
 };
 
 vector<token> tokenize_file(const char* name);
+ostream& operator<<(ostream& out, const token_type tokn);

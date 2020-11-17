@@ -5,7 +5,7 @@ using namespace std;
 
 const string token_names[] =
 {
-    "INVALID", "keyword", "identifier",
+    "error:", "keyword", "identifier",
     "constant", "string-literal", "punctuator"
 };
 
