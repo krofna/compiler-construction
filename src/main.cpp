@@ -1,5 +1,5 @@
 #include <iostream>
-#include "tokenize.cpp"
+#include "tokenize.h"
 using namespace std;
 
 int main(int args, char **cargs)

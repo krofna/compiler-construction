@@ -1,19 +1,7 @@
-#include <vector>
 #include <fstream>
-#include <string>
 #include <algorithm>
+#include "tokenize.h"
 using namespace std;
-
-enum token_type : int
-{
-    INVALID = 0,
-
-    KEYWORD,
-    IDENTIFIER,
-    CONSTANT,
-    STRING_LITERAL,
-    PUNCTUATOR
-};
 
 const string token_names[] =
 {
@@ -149,18 +137,6 @@ int read_identifier(char* p)
         
     return match;
 }
-
-struct token
-{
-    token(token_type type, char* p, int sz, int col, int row)
-        : type(type), str(p, sz), col(col), row(row)
-    {
-    }
-
-    token_type type;
-    string str;
-    int col, row;
-};
 
 vector<token> tokenize(char* p)
 {
