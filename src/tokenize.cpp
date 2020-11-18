@@ -1,5 +1,6 @@
 #include <fstream>
 #include <algorithm>
+#include <cstring>
 #include "tokenize.h"
 using namespace std;
 
@@ -11,7 +12,7 @@ const string token_names[] =
 
 ostream& operator<<(ostream& out, const token_type tokn)
 {
-    return out << token_names[tokn]; 
+    return out << token_names[tokn];
 }
 
 vector<string> punctuators =
@@ -38,7 +39,7 @@ int match_str(const string& s, char* p)
     int match = 0;
     for (int j = 0; j < s.size() && *p && s[j] == *p; ++j, ++p)
         ++match;
-    
+
     return match;
 }
 
@@ -47,7 +48,7 @@ int read_keyword(char* p)
     for (const string& s : keywords)
         if (match_str(s, p) == s.size())
             return s.size();
-    
+
     return 0;
 }
 
@@ -61,7 +62,7 @@ int read_punctuator(char* p)
     for (const string& s : punctuators)
         if (match_str(s, p) == s.size())
             return s.size();
-    
+
     return 0;
 }
 
@@ -77,14 +78,14 @@ int read_string(char* p)
         ++match;
         if (*p == '"')
             return match;
-        
+
         if (*p == '\\')
         {
             ++match;
             ++p;
         }
     }
-    
+
     return 0;
 }
 
@@ -96,7 +97,7 @@ int read_number(char* p)
         ++match;
         ++p;
     }
-            
+
     return match;
 }
 
@@ -106,7 +107,7 @@ int read_char(char* p)
     if (*p != '\'') return 0;
     ++match;
     ++p;
-    
+
     if (*p == '\\')
     {
         ++match;
@@ -129,12 +130,12 @@ int read_identifier(char* p)
     if (!isalpha(*p) && *p != '_') return 0;
     ++match;
     ++p;
-    while(*p && (isalpha(*p) || isdigit(*p) || *p == '_'))
+    while (*p && (isalpha(*p) || isdigit(*p) || *p == '_'))
     {
         ++p;
         ++match;
     }
-        
+
     return match;
 }
 
@@ -144,6 +145,20 @@ vector<token> tokenize(char* p)
     int row = 1, col = 1;
     while (*p)
     {
+        if (*p == '/' && *(p + 1) == '/')
+        {
+            p += 2;
+            while (*p != '\n')
+                p++;
+            continue;
+        }
+
+        if (*p == '/' && *(p + 1) == '*')
+        {
+            p = strstr(p + 2, "*/") + 2;
+            continue;
+        }
+
         if (*p == '\n')
         {
             col = 1;
@@ -205,7 +220,7 @@ vector<token> tokenize(char* p)
         else tokens.emplace_back(INVALID, p, 1, col, row);
         ++p;
     }
-    
+
     return tokens;
 }
 

@@ -2,7 +2,10 @@ int main()
 {
     int x;
     scanf("%d", &x);
-    if (x != 0)
+    // comment
+    if (x != 0) /* idk
+
+                 */
     {
         printf("Hello World");
     }
