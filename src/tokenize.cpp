@@ -34,6 +34,8 @@ vector<string> keywords =
     "_Noreturn", "_Static_assert", "_Thread_local"
 };
 
+char escapeable_chars[] = "abefnrtv\\'\"?";
+
 int match_str(const string& s, char* p)
 {
     int match = 0;
