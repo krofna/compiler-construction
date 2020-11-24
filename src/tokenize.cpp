@@ -89,7 +89,7 @@ int read_string(char* p)
                 return 0;
             ++match;
         }
-        
+
         ++p;
     }
 
@@ -111,7 +111,7 @@ int read_number(char* p)
 int read_char(char* p)
 {
     if (*p != '\'') return 0;
-    
+
     int match = 1;
     ++p;
 
@@ -125,8 +125,8 @@ int read_char(char* p)
 
     ++match;
     if (*p == '\'')
-        return match;
-    
+        return 0;
+
     ++p;
     ++match;
 
@@ -160,14 +160,34 @@ vector<token> tokenize(char* p)
         if (*p == '/' && *(p + 1) == '/')
         {
             p += 2;
-            while (*p != '\n')
+            while (*p && *p != '\n')
                 p++;
+
+            if (p) ++p;
+            row += 1;
+            col = 1;
             continue;
         }
 
         if (*p == '/' && *(p + 1) == '*')
         {
-            p = strstr(p + 2, "*/") + 2;
+            char* q = strstr(p + 2, "*/");
+            if (q != NULL)
+            {
+                while (p != q + 2)
+                {
+                    if (*p == '\n')
+                        row++, col = 1;
+                    else
+                        col++;
+                    ++p;
+                }
+            }
+            else
+            {
+                tokens.emplace_back(INVALID, p, 2, col, row);
+                p += 2;
+            }
             continue;
         }
 
