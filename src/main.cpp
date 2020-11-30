@@ -1,5 +1,5 @@
 #include <iostream>
-#include "tokenize.h"
+#include "parser.h"
 using namespace std;
 
 int main(int args, char **cargs)
@@ -21,5 +21,13 @@ int main(int args, char **cargs)
         if (tok.type == INVALID)
             return EXIT_FAILURE;
 
+    try
+    {
+        translation_unit* tu = parser(tokens).parse();
+    }
+    catch (exception e)
+    {
+        cerr << e.what() << endl;
+    }
     return EXIT_SUCCESS;
 }

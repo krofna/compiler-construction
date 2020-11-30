@@ -4,15 +4,20 @@
 #include "tokenize.h"
 using namespace std;
 
-const string token_names[] =
+static const string token_names[] =
 {
     "error:", "keyword", "identifier",
     "constant", "string-literal", "punctuator"
 };
 
+const string& stringify(token_type type)
+{
+    return token_names[type];
+}
+
 ostream& operator<<(ostream& out, const token_type tokn)
 {
-    return out << token_names[tokn];
+    return out << stringify(tokn);
 }
 
 vector<string> punctuators =
@@ -36,10 +41,10 @@ vector<string> keywords =
 
 const string escapable_chars = "abefnrtv\\'\"?";
 
-int match_str(const string& s, char* p)
+size_t match_str(const string& s, char* p)
 {
-    int match = 0;
-    for (int j = 0; j < s.size() && *p && s[j] == *p; ++j, ++p)
+    size_t match = 0;
+    for (size_t j = 0; j < s.size() && *p && s[j] == *p; ++j, ++p)
         ++match;
 
     return match;

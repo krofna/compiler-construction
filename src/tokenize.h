@@ -16,6 +16,10 @@ enum token_type : int
 
 struct token
 {
+    token() : type(INVALID), col(0), row(0)
+    {
+    }
+
     token(token_type type, char* p, int sz, int col, int row)
         : type(type), str(p, sz), col(col), row(row)
     {
@@ -28,3 +32,4 @@ struct token
 
 vector<token> tokenize_file(const char* name);
 ostream& operator<<(ostream& out, const token_type tokn);
+const string& stringify(token_type type);
