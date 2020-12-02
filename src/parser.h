@@ -39,7 +39,7 @@ struct abstract_declarator
 struct type_name
 {
     vector<specifier_qualifier*> sqs;
-    abstract_declarator* ad;
+    abstract_declarator* ad = nullptr;
 };
 
 struct declaration_specifiers
@@ -48,6 +48,10 @@ struct declaration_specifiers
 };
 
 struct declarator
+{
+};
+
+struct pointer
 {
 };
 
@@ -114,9 +118,53 @@ struct prefix_decrement_expression : unary_expression
     unary_expression* ue;
 };
 
+struct cast_expression;
+
+struct unary_and_expression : unary_expression
+{
+    cast_expression* ce;
+};
+
+struct unary_star_expression : unary_expression
+{
+    cast_expression* ce;
+};
+
+struct unary_plus_expression : unary_expression
+{
+    cast_expression* ce;
+};
+
+struct unary_minus_expression : unary_expression
+{
+    cast_expression* ce;
+};
+
+struct unary_tilde_expression : unary_expression
+{
+    cast_expression* ce;
+};
+
+struct unary_not_expression : unary_expression
+{
+    cast_expression* ce;
+};
+
+struct sizeof_expression : unary_expression
+{
+    unary_expression* ue;
+};
+
+struct sizeof_type_expression : unary_expression
+{
+    type_name* tn;
+};
+
 struct cast_expression
 {
     unary_expression* ue = nullptr;
+    type_name* tn = nullptr;
+    cast_expression* ce = nullptr;
 };
 
 struct multiplicative_expression
@@ -124,9 +172,39 @@ struct multiplicative_expression
     cast_expression* ce = nullptr;
 };
 
+struct mul_expression : multiplicative_expression
+{
+    multiplicative_expression* lhs;
+    cast_expression* rhs;
+};
+
+struct div_expression : multiplicative_expression
+{
+    multiplicative_expression* lhs;
+    cast_expression* rhs;
+};
+
+struct mod_expression : multiplicative_expression
+{
+    multiplicative_expression* lhs;
+    cast_expression* rhs;
+};
+
 struct additive_expression
 {
     multiplicative_expression* me = nullptr;
+};
+
+struct add_expression : additive_expression
+{
+    additive_expression* lhs;
+    multiplicative_expression* rhs;
+};
+
+struct sub_expression : additive_expression
+{
+    additive_expression* lhs;
+    multiplicative_expression* rhs;
 };
 
 struct shift_expression
@@ -134,9 +212,45 @@ struct shift_expression
     additive_expression* ae = nullptr;
 };
 
+struct rshift_expression : shift_expression
+{
+    shift_expression* lhs;
+    additive_expression* rhs;
+};
+
+struct lshift_expression : shift_expression
+{
+    shift_expression* lhs;
+    additive_expression* rhs;
+};
+
 struct relational_expression
 {
     shift_expression* se = nullptr;
+};
+
+struct less_expression : relational_expression
+{
+    relational_expression* lhs;
+    shift_expression* rhs;
+};
+
+struct greater_expression : relational_expression
+{
+    relational_expression* lhs;
+    shift_expression* rhs;
+};
+
+struct less_equal_expression : relational_expression
+{
+    relational_expression* lhs;
+    shift_expression* rhs;
+};
+
+struct greater_equal_expression : relational_expression
+{
+    relational_expression* lhs;
+    shift_expression* rhs;
 };
 
 struct equality_expression
@@ -144,34 +258,59 @@ struct equality_expression
     relational_expression* re = nullptr;
 };
 
+struct equal_expression : equality_expression
+{
+    equality_expression* lhs;
+    relational_expression* rhs;
+};
+
+struct not_equal_expression : equality_expression
+{
+    equality_expression* lhs;
+    relational_expression* rhs;
+};
+
 struct and_expression
 {
     equality_expression* ee = nullptr;
+    and_expression* lhs = nullptr;
+    equality_expression* rhs = nullptr;
 };
 
 struct exclusive_or_expression
 {
     and_expression* ae = nullptr;
+    exclusive_or_expression* lhs = nullptr;
+    and_expression* rhs = nullptr;
 };
 
 struct inclusive_or_expression
 {
     exclusive_or_expression* xe = nullptr;
+    inclusive_or_expression* lhs = nullptr;
+    exclusive_or_expression* rhs = nullptr;
 };
 
 struct logical_and_expression
 {
     inclusive_or_expression* oe = nullptr;
+    logical_and_expression* lhs = nullptr;
+    inclusive_or_expression* rhs = nullptr;
 };
 
 struct logical_or_expression
 {
     logical_and_expression* ae = nullptr;
+    logical_or_expression* lhs = nullptr;
+    logical_and_expression* rhs = nullptr;
 };
 
 struct conditional_expression
 {
     logical_or_expression* oe = nullptr;
+    logical_or_expression* expr1 = nullptr;
+    expression* expr2 = nullptr;
+    conditional_expression* expr3 = nullptr;
 };
 
 struct assignment_expression
@@ -354,7 +493,7 @@ private:
     {
         for (const string& s : what)
             if (check(s))
-                return true;
+                return --tokit, true;
         return false;
     }
 
@@ -406,8 +545,10 @@ private:
     statement* parse_statement();
     type_qualifier* parse_type_qualifier();
     type_specifier* parse_type_specifier();
+    abstract_declarator* parse_abstract_declarator();
     type_name* parse_type_name();
     declaration_specifiers* parse_declaration_specifiers();
+    pointer* parse_pointer();
     declarator* parse_declarator();
     block_item* parse_block_item();
     compound_statement* parse_compound_statement();

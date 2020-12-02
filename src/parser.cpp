@@ -92,7 +92,6 @@ postfix_expression* parser::parse_postfix_expression()
         }
         reject();
     }
-    // ...
     return nullptr;
 }
 
@@ -116,20 +115,54 @@ unary_expression* parser::parse_unary_expression()
         de->ue = parse_unary_expression();
         return de;
     }
-    if (check_any({"&", "*", "+", "-", "~", "!"}))
+    if (check("&"))
     {
-        // ...
-        parse_cast_expression();
+        unary_and_expression* ae = new unary_and_expression;
+        ae->ce = parse_cast_expression();
+        return ae;
+    }
+    if (check("*"))
+    {
+        unary_star_expression* se = new unary_star_expression;
+        se->ce = parse_cast_expression();
+        return se;
+    }
+    if (check("+"))
+    {
+        unary_plus_expression* pe = new unary_plus_expression;
+        pe->ce = parse_cast_expression();
+        return pe;
+    }
+    if (check("-"))
+    {
+        unary_minus_expression* me = new unary_minus_expression;
+        me->ce = parse_cast_expression();
+        return me;
+    }
+    if (check("~"))
+    {
+        unary_tilde_expression* te = new unary_tilde_expression;
+        te->ce = parse_cast_expression();
+        return te;
+    }
+    if (check("!"))
+    {
+        unary_not_expression* ne = new unary_not_expression;
+        ne->ce = parse_cast_expression();
+        return ne;
     }
     if (check("sizeof"))
     {
         if (unary_expression* ue = parse_unary_expression())
         {
-            // ...
+            sizeof_expression* se = new sizeof_expression;
+            se->ue = parse_unary_expression();
+            return se;
         }
         if (check("("))
         {
-            // ...
+            sizeof_type_expression* se = new sizeof_type_expression;
+            se->tn = parse_type_name();
             accept(")");
         }
     }
@@ -146,9 +179,11 @@ cast_expression* parser::parse_cast_expression()
     }
     if (check("("))
     {
-        // parse_type_name();
+        cast_expression* ce = new cast_expression;
+        ce->tn = parse_type_name();
         accept(")");
-        parse_cast_expression();
+        ce->ce = parse_cast_expression();
+        return ce;
     }
     return nullptr;
 }
@@ -161,19 +196,28 @@ multiplicative_expression* parser::parse_multiplicative_expression()
         me->ce = ce;
         return me;
     }
-    if (multiplicative_expression* me = parse_multiplicative_expression())
+    if (multiplicative_expression* lhs = parse_multiplicative_expression())
     {
         if (check("*"))
         {
-            parse_cast_expression();
+            mul_expression* me = new mul_expression;
+            me->lhs = lhs;
+            me->rhs = parse_cast_expression();
+            return me;
         }
         if (check("/"))
         {
-            parse_cast_expression();
+            div_expression* me = new div_expression;
+            me->lhs = lhs;
+            me->rhs = parse_cast_expression();
+            return me;
         }
         if (check("%"))
         {
-            parse_cast_expression();
+            mod_expression* me = new mod_expression;
+            me->lhs = lhs;
+            me->rhs = parse_cast_expression();
+            return me;
         }
         reject();
     }
@@ -188,15 +232,21 @@ additive_expression* parser::parse_additive_expression()
         ae->me = me;
         return ae;
     }
-    if (additive_expression* ae = parse_additive_expression())
+    if (additive_expression* lhs = parse_additive_expression())
     {
         if (check("+"))
         {
-            parse_multiplicative_expression();
+            add_expression* ae = new add_expression;
+            ae->lhs = lhs;
+            ae->rhs = parse_multiplicative_expression();
+            return ae;
         }
         if (check("-"))
         {
-            parse_multiplicative_expression();
+            sub_expression* se = new sub_expression;
+            se->lhs = lhs;
+            se->rhs = parse_multiplicative_expression();
+            return se;
         }
         reject();
     }
@@ -211,15 +261,21 @@ shift_expression* parser::parse_shift_expression()
         se->ae = ae;
         return se;
     }
-    if (shift_expression* ae = parse_shift_expression())
+    if (shift_expression* lhs = parse_shift_expression())
     {
         if (check("<<"))
         {
-            parse_additive_expression();
+            lshift_expression* ae = new lshift_expression;
+            ae->lhs = lhs;
+            ae->rhs = parse_additive_expression();
+            return ae;
         }
         if (check(">>"))
         {
-            parse_additive_expression();
+            rshift_expression* ae = new rshift_expression;
+            ae->lhs = lhs;
+            ae->rhs = parse_additive_expression();
+            return ae;
         }
         reject();
     }
@@ -234,23 +290,35 @@ relational_expression* parser::parse_relational_expression()
         re->se = se;
         return re;
     }
-    if (relational_expression* re = parse_relational_expression())
+    if (relational_expression* lhs = parse_relational_expression())
     {
         if (check("<"))
         {
-            parse_shift_expression();
+            less_expression* le = new less_expression;
+            le->lhs = lhs;
+            le->rhs = parse_shift_expression();
+            return le;
         }
         if (check(">"))
         {
-            parse_shift_expression();
+            greater_expression* ge = new greater_expression;
+            ge->lhs = lhs;
+            ge->rhs = parse_shift_expression();
+            return ge;
         }
         if (check("<="))
         {
-            parse_shift_expression();
+            less_equal_expression* le = new less_equal_expression;
+            le->lhs = lhs;
+            le->rhs = parse_shift_expression();
+            return le;
         }
         if (check(">="))
         {
-            parse_shift_expression();
+            greater_equal_expression* ge = new greater_equal_expression;
+            ge->lhs = lhs;
+            ge->rhs = parse_shift_expression();
+            return ge;
         }
         reject();
     }
@@ -265,15 +333,21 @@ equality_expression* parser::parse_equality_expression()
         ee->re = re;
         return ee;
     }
-    if (equality_expression* re = parse_equality_expression())
+    if (equality_expression* lhs = parse_equality_expression())
     {
         if (check("=="))
         {
-            parse_relational_expression();
+            equal_expression* ee = new equal_expression;
+            ee->lhs = lhs;
+            ee->rhs = parse_relational_expression();
+            return ee;
         }
         if (check("!="))
         {
-            parse_relational_expression();
+            not_equal_expression* ne = new not_equal_expression;
+            ne->lhs = lhs;
+            ne->rhs = parse_relational_expression();
+            return ne;
         }
         reject();
     }
@@ -288,10 +362,13 @@ and_expression* parser::parse_and_expression()
         ae->ee = ee;
         return ae;
     }
-    if (and_expression* ae = parse_and_expression())
+    if (and_expression* lhs = parse_and_expression())
     {
+        and_expression* ae = new and_expression;
+        ae->lhs = lhs;
         accept("&");
-        parse_equality_expression();
+        ae->rhs = parse_equality_expression();
+        return ae;
     }
     return nullptr;
 }
@@ -304,10 +381,13 @@ exclusive_or_expression* parser::parse_exclusive_or_expression()
         xe->ae = ae;
         return xe;
     }
-    if (exclusive_or_expression* xe = parse_exclusive_or_expression())
+    if (exclusive_or_expression* lhs = parse_exclusive_or_expression())
     {
+        exclusive_or_expression* xe = new exclusive_or_expression;
+        xe->lhs = lhs;
         accept("^");
-        parse_and_expression();
+        xe->rhs = parse_and_expression();
+        return xe;
     }
     return nullptr;
 }
@@ -320,10 +400,13 @@ inclusive_or_expression* parser::parse_inclusive_or_expression()
         ie->xe = xe;
         return ie;
     }
-    if (inclusive_or_expression* oe = parse_inclusive_or_expression())
+    if (inclusive_or_expression* lhs = parse_inclusive_or_expression())
     {
+        inclusive_or_expression* oe = new inclusive_or_expression;
+        oe->lhs = lhs;
         accept("|");
-        parse_exclusive_or_expression();
+        oe->rhs = parse_exclusive_or_expression();
+        return oe;
     }
     return nullptr;
 }
@@ -336,10 +419,13 @@ logical_and_expression* parser::parse_logical_and_expression()
         ae->oe = oe;
         return ae;
     }
-    if (logical_and_expression* ae = parse_logical_and_expression())
+    if (logical_and_expression* lhs = parse_logical_and_expression())
     {
+        logical_and_expression* ae = new logical_and_expression;
+        ae->lhs = lhs;
         accept("&&");
-        parse_inclusive_or_expression();
+        ae->rhs = parse_inclusive_or_expression();
+        return ae;
     }
     return nullptr;
 }
@@ -352,10 +438,13 @@ logical_or_expression* parser::parse_logical_or_expression()
         oe->ae = ae;
         return oe;
     }
-    if (logical_or_expression* oe = parse_logical_or_expression())
+    if (logical_or_expression* lhs = parse_logical_or_expression())
     {
+        logical_or_expression* oe = new logical_or_expression;
+        oe->lhs = lhs;
         accept("||");
-        parse_and_expression();
+        oe->rhs = parse_logical_and_expression();
+        return oe;
     }
     return nullptr;
 }
@@ -364,12 +453,19 @@ conditional_expression* parser::parse_conditional_expression()
 {
     if (logical_or_expression* oe = parse_logical_or_expression())
     {
+        conditional_expression* ce = new conditional_expression;
         if (check("?"))
         {
-            parse_expression();
+            ce->expr1 = oe;
+            ce->expr2 = parse_expression();
             accept(":");
-            parse_conditional_expression();
+            ce->expr3 = parse_conditional_expression();
         }
+        else
+        {
+            ce->oe = oe;
+        }
+        return ce;
     }
     return nullptr;
 }
@@ -385,6 +481,7 @@ assignment_expression* parser::parse_assignment_expression()
     if (unary_expression* ue = parse_unary_expression())
     {
         accept_any({"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|="});
+        // ...
         parse_assignment_expression();
     }
     return nullptr;
@@ -392,6 +489,7 @@ assignment_expression* parser::parse_assignment_expression()
 
 constant_expression* parser::parse_constant_expression()
 {
+    // ...
     parse_conditional_expression();
     return nullptr;
 }
@@ -569,7 +667,7 @@ type_qualifier* parser::parse_type_qualifier()
     if (check_any(qualifiers))
     {
         type_qualifier* tq = new type_qualifier;
-        // tq->tok = *tokit++;
+        tq->tok = *tokit++;
         return tq;
     }
     return nullptr;
@@ -584,22 +682,57 @@ type_specifier* parser::parse_type_specifier()
     if (check_any(builtin_types))
     {
         builtin_type_specifier* ts = new builtin_type_specifier;
-        // ts->tok = *tokit++;
+        ts->tok = *tokit++;
         return ts;
     }
     if (check_any({"struct", "union"}))
     {
         struct_or_union_specifier* ss = new struct_or_union_specifier;
-        // ts->sou = *tokit++;
+        ss->sou = *tokit++;
         ss->id = *tokit++;
         return ss;
     }
     return nullptr;
 }
 
-type_name* parser::parse_type_name()
+pointer* parser::parse_pointer()
 {
     return nullptr;
+}
+
+abstract_declarator* parser::parse_abstract_declarator()
+{
+    if (pointer* p = parse_pointer())
+    {
+        abstract_declarator* ad = new abstract_declarator;
+        // ...
+        return ad;
+    }
+    return nullptr;
+}
+
+type_name* parser::parse_type_name()
+{
+    type_name* tn = new type_name;
+    while (true)
+    {
+        if (type_specifier* ts = parse_type_specifier())
+        {
+            tn->sqs.push_back(ts);
+            continue;
+        }
+        if (type_qualifier* tq = parse_type_qualifier())
+        {
+            tn->sqs.push_back(tq);
+            continue;
+        }
+        break;
+    }
+    if (tn->sqs.empty())
+        return delete tn, nullptr;
+
+    tn->ad = parse_abstract_declarator();
+    return tn;
 }
 
 declaration_specifiers* parser::parse_declaration_specifiers()
