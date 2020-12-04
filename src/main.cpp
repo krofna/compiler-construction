@@ -11,23 +11,32 @@ int main(int args, char **cargs)
         return EXIT_FAILURE;
     }
 
-    vector<token> tokens = tokenize_file(cargs[2]);
-    for(auto tok : tokens)
-        (tok.type ? cout : cerr) << cargs[2] << ':' << tok.row
-                          << ':' << tok.col << ": " << tok.type
-                          << ' ' << tok.str << '\n';
-
-    for(auto tok : tokens)
-        if (tok.type == INVALID)
-            return EXIT_FAILURE;
-
-    try
+    if (string(cargs[1]) == "--tokenize")
     {
-        translation_unit* tu = parser(tokens).parse();
+        vector<token> tokens = tokenize_file(cargs[2]);
+        for(auto tok : tokens)
+            (tok.type ? cout : cerr) << cargs[2] << ':' << tok.row
+                                     << ':' << tok.col << ": " << tok.type
+                                     << ' ' << tok.str << '\n';
+
+        for(auto tok : tokens)
+            if (tok.type == INVALID)
+                return EXIT_FAILURE;
+        
+        
+        if (string(cargs[1]) == "--parse")
+            {
+                try
+                    {
+                        translation_unit* tu = parser(tokens).parse();
+                    }
+                catch (exception e)
+                    {
+                        cerr << e.what() << endl;
+                    }
+            }
+        
     }
-    catch (exception e)
-    {
-        cerr << e.what() << endl;
-    }
+    
     return EXIT_SUCCESS;
 }

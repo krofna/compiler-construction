@@ -89,9 +89,7 @@ int read_string(char* p)
         if (*p == '\\')
         {
             ++p;
-            if (find(escapable_chars.begin(), escapable_chars.end(), *p)
-                == escapable_chars.end())
-                return 0;
+            if (!*p) return 0;
             ++match;
         }
 
@@ -124,8 +122,7 @@ int read_char(char* p)
     {
         ++match;
         ++p;
-        if (find(escapable_chars.begin(), escapable_chars.end(), *p)
-            == escapable_chars.end()) return 0;
+        if (!*p) return 0;
     }
 
     ++match;
@@ -166,7 +163,11 @@ vector<token> tokenize(char* p)
         {
             p += 2;
             while (*p && *p != '\n')
+            {
+                if (*p == '\r' && *(1 + p) != '\n')
+                    break;
                 p++;
+            }
 
             if (p) ++p;
             row += 1;
@@ -181,7 +182,7 @@ vector<token> tokenize(char* p)
             {
                 while (p != q + 2)
                 {
-                    if (*p == '\n')
+                    if (*p == '\n' || (*p == '\r' && *(p + 1) != '\n'))
                         row++, col = 1;
                     else
                         col++;
