@@ -88,8 +88,9 @@ int read_string(char* p)
 
         if (*p == '\\')
         {
+            
             ++p;
-            if (!*p) return 0;
+            if (find(escapable_chars.begin(), escapable_chars.end(), *p) == escapable_chars.end()) return 0;
             ++match;
         }
 
@@ -122,7 +123,7 @@ int read_char(char* p)
     {
         ++match;
         ++p;
-        if (!*p) return 0;
+        if (find(escapable_chars.begin(), escapable_chars.end(), *p) == escapable_chars.end()) return 0;
     }
 
     ++match;
