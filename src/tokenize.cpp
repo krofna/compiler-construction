@@ -39,7 +39,7 @@ vector<string> keywords =
     "_Noreturn", "_Static_assert", "_Thread_local"
 };
 
-const string escapable_chars = "abefnrtv\\'\"?";
+const string escapable_chars = "abfnrtv\\'\"?";
 
 size_t match_str(const string& s, char* p)
 {
