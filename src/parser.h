@@ -33,8 +33,12 @@ struct struct_or_union_specifier : type_specifier
 
 struct abstract_declarator
 {
-    
 };
+
+struct direct_abstract_declarator
+{
+};
+
 
 struct type_name
 {
@@ -47,12 +51,51 @@ struct declaration_specifiers
     type_specifier* ts;
 };
 
-struct declarator
+struct storage_class_specifier
 {
+    token tok;
+};
+
+struct function_specifier
+{
+    token tok;
+};
+
+struct declarator;
+
+struct direct_declarator
+{
+    token tok;
+};
+
+struct parenthesized_declarator : direct_declarator
+{
+    declarator* decl;
+};
+
+struct parameter_declaration
+{
+    declaration_specifiers* ds;
+    declarator* decl = nullptr;
+    abstract_declarator* ad = nullptr;
+};
+
+struct function_declarator : direct_declarator
+{
+    direct_declarator* dd;
+    vector<parameter_declaration*> pl;
 };
 
 struct pointer
 {
+    vector<type_qualifier*> tql;
+    pointer* p = nullptr;
+};
+
+struct declarator
+{
+    pointer* p = nullptr;
+    direct_declarator* dd;
 };
 
 struct declaration
@@ -432,11 +475,22 @@ struct statement_item : block_item
 
 struct compound_statement : statement
 {
+    ~compound_statement()
+    {
+        for (block_item* i : bi)
+            delete i;
+    }
     vector<block_item*> bi;
 };
 
 struct function_definition
 {
+    ~function_definition()
+    {
+        delete ds;
+        delete dec;
+        delete cs;
+    }
     declaration_specifiers* ds;
     declarator* dec;
     compound_statement* cs;
@@ -444,11 +498,21 @@ struct function_definition
 
 struct external_declaration
 {
+    ~external_declaration()
+    {
+        for (function_definition* d : fd)
+            delete d;
+    }
     vector<function_definition*> fd;
 };
 
 struct translation_unit
 {
+    ~translation_unit()
+    {
+        for (external_declaration* d : ed)
+            delete d;
+    }
     vector<external_declaration*> ed;
 };
 
@@ -535,7 +599,8 @@ private:
     assignment_expression* parse_assignment_expression();
     constant_expression* parse_constant_expression();
 
-    node* parse_direct_declarator();
+    function_specifier* parse_function_specifier();
+    storage_class_specifier* parse_storage_class_specifier();
     declaration* parse_declaration();
     labeled_statement* parse_labeled_statement();
     expression_statement* parse_expression_statement();
@@ -545,10 +610,13 @@ private:
     statement* parse_statement();
     type_qualifier* parse_type_qualifier();
     type_specifier* parse_type_specifier();
+    direct_abstract_declarator* parse_direct_abstract_declarator();
     abstract_declarator* parse_abstract_declarator();
     type_name* parse_type_name();
     declaration_specifiers* parse_declaration_specifiers();
     pointer* parse_pointer();
+    parameter_declaration* parse_parameter_declaration();
+    direct_declarator* parse_direct_declarator();
     declarator* parse_declarator();
     block_item* parse_block_item();
     compound_statement* parse_compound_statement();
