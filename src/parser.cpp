@@ -503,18 +503,20 @@ expression* parser::parse_expression()
     return expr;
 }
 
-function_specifier* parser::parse_function_specifier()
+declaration* parser::parse_declaration()
 {
-    static const vector<string> specifiers = {
-        "inline", "_Noreturn"
-    };
-    if (check_any(specifiers))
-    {
-        function_specifier* fs = new function_specifier;
-        fs->tok = *tokit++;
-        return fs;
-    }
-    return nullptr;
+    declaration* decl = new declaration;
+    decl->ds = parse_declaration_specifiers();
+    if (declarator* d = parse_declarator())
+        decl->d = d;
+    return decl;
+}
+
+declaration_specifiers* parser::parse_declaration_specifiers()
+{
+    declaration_specifiers* ds = new declaration_specifiers;
+    ds->ts = parse_type_specifier();
+    return ds;
 }
 
 storage_class_specifier* parser::parse_storage_class_specifier()
@@ -531,13 +533,113 @@ storage_class_specifier* parser::parse_storage_class_specifier()
     return nullptr;
 }
 
-declaration* parser::parse_declaration()
+type_specifier* parser::parse_type_specifier()
 {
-    declaration* decl = new declaration;
-    decl->ds = parse_declaration_specifiers();
-    if (declarator* d = parse_declarator())
-        decl->d = d;
-    return decl;
+    static const vector<string> builtin_types = {
+        "void", "char", "short", "int", "long", "float", "double",
+        "signed", "unsigned", "_Bool", "_Complex"
+    };
+    if (check_any(builtin_types))
+    {
+        builtin_type_specifier* ts = new builtin_type_specifier;
+        ts->tok = *tokit++;
+        return ts;
+    }
+    if (check_any({"struct", "union"}))
+    {
+        struct_or_union_specifier* ss = new struct_or_union_specifier;
+        ss->sou = *tokit++;
+        ss->id = *tokit++;
+        return ss;
+    }
+    return nullptr;
+}
+
+type_qualifier* parser::parse_type_qualifier()
+{
+    static const vector<string> qualifiers = {
+        "const", "restrict", "volatile", "_Atomic"
+    };
+    if (check_any(qualifiers))
+    {
+        type_qualifier* tq = new type_qualifier;
+        tq->tok = *tokit++;
+        return tq;
+    }
+    return nullptr;
+}
+
+function_specifier* parser::parse_function_specifier()
+{
+    static const vector<string> specifiers = {
+        "inline", "_Noreturn"
+    };
+    if (check_any(specifiers))
+    {
+        function_specifier* fs = new function_specifier;
+        fs->tok = *tokit++;
+        return fs;
+    }
+    return nullptr;
+}
+
+declarator* parser::parse_declarator()
+{
+    if (pointer* p = parse_pointer())
+    {
+        declarator* decl = new declarator;
+        decl->p = p;
+        decl->dd = parse_direct_declarator();
+        return decl;
+    }
+    if (direct_declarator* dd = parse_direct_declarator())
+    {
+        declarator* decl = new declarator;
+        decl->dd = parse_direct_declarator();
+        return decl;
+    }
+    return nullptr;
+}
+
+direct_declarator* parser::parse_direct_declarator()
+{
+    if (tokit->type == IDENTIFIER)
+    {
+        direct_declarator* dd = new direct_declarator;
+        dd->tok = *tokit++;
+        return dd;
+    }
+    if (check("("))
+    {
+        parenthesized_declarator* pd = new parenthesized_declarator;
+        pd->decl = parse_declarator();
+        accept(")");
+        return pd;
+    }
+    if (direct_declarator* dd = parse_direct_declarator())
+    {
+        function_declarator* fd = new function_declarator;
+        fd->dd = dd;
+        do
+            fd->pl.push_back(parse_parameter_declaration());
+        while (check(","));
+        return fd;
+    }
+    return nullptr;
+}
+
+pointer* parser::parse_pointer()
+{
+    if (check("*"))
+    {
+        pointer* p = new pointer;
+        while (type_qualifier* tq = parse_type_qualifier())
+            p->tql.push_back(tq);
+        if (pointer* nxt = parse_pointer())
+            p->p = nxt;
+        return p;
+    }
+    return nullptr;
 }
 
 labeled_statement* parser::parse_labeled_statement()
@@ -684,56 +786,6 @@ statement* parser::parse_statement()
     return nullptr;
 }
 
-type_qualifier* parser::parse_type_qualifier()
-{
-    static const vector<string> qualifiers = {
-        "const", "restrict", "volatile", "_Atomic"
-    };
-    if (check_any(qualifiers))
-    {
-        type_qualifier* tq = new type_qualifier;
-        tq->tok = *tokit++;
-        return tq;
-    }
-    return nullptr;
-}
-
-type_specifier* parser::parse_type_specifier()
-{
-    static const vector<string> builtin_types = {
-        "void", "char", "short", "int", "long", "float", "double",
-        "signed", "unsigned", "_Bool", "_Complex"
-    };
-    if (check_any(builtin_types))
-    {
-        builtin_type_specifier* ts = new builtin_type_specifier;
-        ts->tok = *tokit++;
-        return ts;
-    }
-    if (check_any({"struct", "union"}))
-    {
-        struct_or_union_specifier* ss = new struct_or_union_specifier;
-        ss->sou = *tokit++;
-        ss->id = *tokit++;
-        return ss;
-    }
-    return nullptr;
-}
-
-pointer* parser::parse_pointer()
-{
-    if (check("*"))
-    {
-        pointer* p = new pointer;
-        while (type_qualifier* tq = parse_type_qualifier())
-            p->tql.push_back(tq);
-        if (pointer* nxt = parse_pointer())
-            p->p = nxt;
-        return p;
-    }
-    return nullptr;
-}
-
 direct_abstract_declarator* parser::parse_direct_abstract_declarator()
 {
     // ...
@@ -784,13 +836,6 @@ type_name* parser::parse_type_name()
     return tn;
 }
 
-declaration_specifiers* parser::parse_declaration_specifiers()
-{
-    declaration_specifiers* ds = new declaration_specifiers;
-    ds->ts = parse_type_specifier();
-    return ds;
-}
-
 parameter_declaration* parser::parse_parameter_declaration()
 {
     if (declaration_specifiers* ds = parse_declaration_specifiers())
@@ -805,51 +850,6 @@ parameter_declaration* parser::parse_parameter_declaration()
             pd->ad = parse_abstract_declarator();
         }
         return pd;
-    }
-    return nullptr;
-}
-
-direct_declarator* parser::parse_direct_declarator()
-{
-    if (tokit->type == IDENTIFIER)
-    {
-        direct_declarator* dd = new direct_declarator;
-        dd->tok = *tokit++;
-        return dd;
-    }
-    if (check("("))
-    {
-        parenthesized_declarator* pd = new parenthesized_declarator;
-        pd->decl = parse_declarator();
-        accept(")");
-        return pd;
-    }
-    if (direct_declarator* dd = parse_direct_declarator())
-    {
-        function_declarator* fd = new function_declarator;
-        fd->dd = dd;
-        do
-            fd->pl.push_back(parse_parameter_declaration());
-        while (check(","));
-        return fd;
-    }
-    return nullptr;
-}
-
-declarator* parser::parse_declarator()
-{
-    if (pointer* p = parse_pointer())
-    {
-        declarator* decl = new declarator;
-        decl->p = p;
-        decl->dd = parse_direct_declarator();
-        return decl;
-    }
-    if (direct_declarator* dd = parse_direct_declarator())
-    {
-        declarator* decl = new declarator;
-        decl->dd = parse_direct_declarator();
-        return decl;
     }
     return nullptr;
 }
