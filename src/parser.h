@@ -516,6 +516,7 @@ struct translation_unit
         for (external_declaration* d : ed)
             delete d;
     }
+    void print();
     vector<external_declaration*> ed;
 };
 

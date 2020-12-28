@@ -2,41 +2,35 @@
 #include "parser.h"
 using namespace std;
 
-int main(int args, char **argv)
+int task_b(const char* filename)
 {
-    // ??? Don't know why I put this here :(
-    if (args != 3)
-    {
-        cerr << "program takes file name";
-        return EXIT_FAILURE;
-    }
-
-    vector<token> tokens = tokenize_file(argv[2]);
+    vector<token> tokens = tokenize_file(filename);
     bool failure = false;
     for (auto tok : tokens)
         if (tok.type == INVALID)
             failure = true;
 
-    if (string(argv[1]) == "--tokenize")
-    {
-        for (auto tok : tokens)
-            (tok.type ? cout : cerr) << argv[2] << ':' << tok.row
-                                     << ':' << tok.col << ": " << tok.type
-                                     << ' ' << tok.str << '\n';
+    for (auto tok : tokens)
+        (tok.type ? cout : cerr) << filename << ':' << tok.row
+                                 << ':' << tok.col << ": " << tok.type
+                                 << ' ' << tok.str << '\n';
 
-        return failure ? EXIT_FAILURE : EXIT_SUCCESS;
-    }
+    return failure ? EXIT_FAILURE : EXIT_SUCCESS;
+}
 
-    if (failure)
-        return EXIT_FAILURE;
+int task_cde(const char* filename, bool print)
+{
+    vector<token> tokens = tokenize_file(filename);
+    bool failure = false;
+    for (auto tok : tokens)
+        if (tok.type == INVALID)
+            return EXIT_FAILURE;
 
     try
     {
         translation_unit* tu = parser(tokens).parse();
-        if (string(argv[1]) == "--print-ast")
-        {
-            // ...
-        }
+        if (print)
+            tu->print();
         delete tu;
     }
     catch (exception e)
@@ -44,6 +38,24 @@ int main(int args, char **argv)
         cerr << e.what() << endl;
         return EXIT_FAILURE;
     }
-    
     return EXIT_SUCCESS;
+}
+
+int main(int args, char **argv)
+{
+    if (args != 3)
+    {
+        cerr << "program takes file name";
+        return EXIT_FAILURE;
+    }
+
+    string opt = argv[1];
+    if (opt == "--tokenize")
+        return task_b(argv[2]);
+    if (opt == "--parse")
+        return task_cde(argv[2], false);
+    if (opt == "--print-ast")
+        return task_cde(argv[2], true);
+
+    return EXIT_FAILURE;
 }
