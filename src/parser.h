@@ -363,6 +363,7 @@ struct assignment_expression
 
 struct constant_expression
 {
+    conditional_expression* ce;
 };
 
 struct expression

@@ -489,9 +489,9 @@ assignment_expression* parser::parse_assignment_expression()
 
 constant_expression* parser::parse_constant_expression()
 {
-    // ...
-    parse_conditional_expression();
-    return nullptr;
+    constant_expression* ce = new constant_expression;
+    ce->ce = parse_conditional_expression();
+    return ce;
 }
 
 expression* parser::parse_expression()
