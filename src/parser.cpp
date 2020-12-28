@@ -534,7 +534,9 @@ storage_class_specifier* parser::parse_storage_class_specifier()
 declaration* parser::parse_declaration()
 {
     declaration* decl = new declaration;
-    // ...
+    decl->ds = parse_declaration_specifiers();
+    if (declarator* d = parse_declarator())
+        decl->d = d;
     return decl;
 }
 

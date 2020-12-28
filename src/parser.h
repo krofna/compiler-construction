@@ -100,6 +100,8 @@ struct declarator
 
 struct declaration
 {
+    declaration_specifiers* ds;
+    declarator* d = nullptr;
 };
 
 struct expression;
