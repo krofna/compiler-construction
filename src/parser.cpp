@@ -642,6 +642,91 @@ pointer* parser::parse_pointer()
     return nullptr;
 }
 
+direct_abstract_declarator* parser::parse_direct_abstract_declarator()
+{
+    // ...
+    if (check("("))
+    {
+        parse_abstract_declarator();
+        accept(")");
+    }
+    return nullptr;
+}
+
+abstract_declarator* parser::parse_abstract_declarator()
+{
+    if (pointer* p = parse_pointer())
+    {
+        abstract_declarator* ad = new abstract_declarator;
+        if (direct_abstract_declarator* dad = parse_direct_abstract_declarator())
+        {
+            // ...
+            ;
+        }
+        return ad;
+    }
+    return nullptr;
+}
+
+type_name* parser::parse_type_name()
+{
+    type_name* tn = new type_name;
+    while (true)
+    {
+        if (type_specifier* ts = parse_type_specifier())
+        {
+            tn->sqs.push_back(ts);
+            continue;
+        }
+        if (type_qualifier* tq = parse_type_qualifier())
+        {
+            tn->sqs.push_back(tq);
+            continue;
+        }
+        break;
+    }
+    if (tn->sqs.empty())
+        return delete tn, nullptr;
+
+    tn->ad = parse_abstract_declarator();
+    return tn;
+}
+
+parameter_declaration* parser::parse_parameter_declaration()
+{
+    if (declaration_specifiers* ds = parse_declaration_specifiers())
+    {
+        parameter_declaration* pd = new parameter_declaration;
+        if (declarator* decl = parse_declarator())
+        {
+            pd->decl = decl;
+        }
+        else
+        {
+            pd->ad = parse_abstract_declarator();
+        }
+        return pd;
+    }
+    return nullptr;
+}
+
+statement* parser::parse_statement()
+{
+    if (labeled_statement* ls = parse_labeled_statement())
+        return ls;
+    if (compound_statement* cs = parse_compound_statement())
+        return cs;
+    if (expression_statement* es = parse_expression_statement())
+        return es;
+    if (selection_statement* ss = parse_selection_statement())
+        return ss;
+    if (iteration_statement* is = parse_iteration_statement())
+        return is;
+    if (jump_statement* js = parse_jump_statement())
+        return js;
+    return nullptr;
+}
+
 labeled_statement* parser::parse_labeled_statement()
 {
     if (tokit->type == IDENTIFIER)
@@ -663,6 +748,32 @@ labeled_statement* parser::parse_labeled_statement()
         default_label* dl = new default_label;
         dl->stat = parse_statement();
         return dl;
+    }
+    return nullptr;
+}
+
+compound_statement* parser::parse_compound_statement()
+{
+    compound_statement* cs = new compound_statement;
+    accept("{");
+    while (!check("}"))
+        cs->bi.push_back(parse_block_item());
+    return cs;
+}
+
+block_item* parser::parse_block_item()
+{
+    if (declaration* decl = parse_declaration())
+    {
+        declaration_item* di = new declaration_item;
+        di->decl = decl;
+        return di;
+    }
+    if (statement* stat = parse_statement())
+    {
+        statement_item* si = new statement_item;
+        si->stat = stat;
+        return si;
     }
     return nullptr;
 }
@@ -767,117 +878,6 @@ jump_statement* parser::parse_jump_statement()
         return rs;
     }
     return nullptr;
-}
-
-statement* parser::parse_statement()
-{
-    if (labeled_statement* ls = parse_labeled_statement())
-        return ls;
-    if (compound_statement* cs = parse_compound_statement())
-        return cs;
-    if (expression_statement* es = parse_expression_statement())
-        return es;
-    if (selection_statement* ss = parse_selection_statement())
-        return ss;
-    if (iteration_statement* is = parse_iteration_statement())
-        return is;
-    if (jump_statement* js = parse_jump_statement())
-        return js;
-    return nullptr;
-}
-
-direct_abstract_declarator* parser::parse_direct_abstract_declarator()
-{
-    // ...
-    if (check("("))
-    {
-        parse_abstract_declarator();
-        accept(")");
-    }
-    return nullptr;
-}
-
-abstract_declarator* parser::parse_abstract_declarator()
-{
-    if (pointer* p = parse_pointer())
-    {
-        abstract_declarator* ad = new abstract_declarator;
-        if (direct_abstract_declarator* dad = parse_direct_abstract_declarator())
-        {
-            // ...
-            ;
-        }
-        return ad;
-    }
-    return nullptr;
-}
-
-type_name* parser::parse_type_name()
-{
-    type_name* tn = new type_name;
-    while (true)
-    {
-        if (type_specifier* ts = parse_type_specifier())
-        {
-            tn->sqs.push_back(ts);
-            continue;
-        }
-        if (type_qualifier* tq = parse_type_qualifier())
-        {
-            tn->sqs.push_back(tq);
-            continue;
-        }
-        break;
-    }
-    if (tn->sqs.empty())
-        return delete tn, nullptr;
-
-    tn->ad = parse_abstract_declarator();
-    return tn;
-}
-
-parameter_declaration* parser::parse_parameter_declaration()
-{
-    if (declaration_specifiers* ds = parse_declaration_specifiers())
-    {
-        parameter_declaration* pd = new parameter_declaration;
-        if (declarator* decl = parse_declarator())
-        {
-            pd->decl = decl;
-        }
-        else
-        {
-            pd->ad = parse_abstract_declarator();
-        }
-        return pd;
-    }
-    return nullptr;
-}
-
-block_item* parser::parse_block_item()
-{
-    if (declaration* decl = parse_declaration())
-    {
-        declaration_item* di = new declaration_item;
-        di->decl = decl;
-        return di;
-    }
-    if (statement* stat = parse_statement())
-    {
-        statement_item* si = new statement_item;
-        si->stat = stat;
-        return si;
-    }
-    return nullptr;
-}
-
-compound_statement* parser::parse_compound_statement()
-{
-    compound_statement* cs = new compound_statement;
-    accept("{");
-    while (!check("}"))
-        cs->bi.push_back(parse_block_item());
-    return cs;
 }
 
 function_definition* parser::parse_function_definition()
