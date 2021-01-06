@@ -159,17 +159,21 @@ unary_expression* parser::parse_unary_expression()
     }
     if (check("sizeof"))
     {
+        if (check("("))
+        {
+            if (type_name* tn = parse_type_name())
+            {
+                sizeof_type_expression* se = new sizeof_type_expression;
+                se->tn = tn;
+                accept(")");
+                return se;
+            }
+            tokit--;
+        }
         if (unary_expression* ue = parse_unary_expression())
         {
             sizeof_expression* se = new sizeof_expression;
             se->ue = ue;
-            return se;
-        }
-        if (check("("))
-        {
-            sizeof_type_expression* se = new sizeof_type_expression;
-            se->tn = parse_type_name();
-            accept(")");
             return se;
         }
         reject();
