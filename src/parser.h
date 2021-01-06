@@ -379,6 +379,8 @@ struct conditional_expression
 struct assignment_expression
 {
     conditional_expression* ce = nullptr;
+    unary_expression* lhs = nullptr;
+    assignment_expression* rhs = nullptr;
 };
 
 struct constant_expression

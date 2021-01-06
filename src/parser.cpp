@@ -32,67 +32,73 @@ primary_expression* parser::parse_primary_expression()
 
 postfix_expression* parser::parse_postfix_expression()
 {
-    if (primary_expression* pe = parse_primary_expression())
-    {
-        postfix_expression* e = new postfix_expression;
-        e->pe = pe;
-        return e;
-    }
-    if (postfix_expression* pe = parse_postfix_expression())
+    primary_expression* pe = parse_primary_expression();
+    if (!pe)
+        return nullptr;
+
+    postfix_expression* e = new postfix_expression;
+    e->pe = pe;
+
+    while (true)
     {
         if (check("["))
         {
             subscript_expression* se = new subscript_expression;
-            se->pfe = pe;
+            se->pfe = e;
             se->expr = parse_expression();
             accept("]");
-            return se;
+            e = se;
         }
-        if (check("("))
+        else if (check("("))
         {
             call_expression* ce = new call_expression;
-            ce->pfe = pe;
+            ce->pfe = e;
             do
                 ce->args.push_back(parse_assignment_expression());
             while (check(","));
             accept(")");
-            return ce;
+            e = ce;
         }
-        if (check("."))
+        else if (check("."))
         {
             if (tokit->type == IDENTIFIER)
             {
                 dot_expression* de = new dot_expression;
-                de->pfe = pe;
+                de->pfe = e;
                 de->id = *tokit;
-                return de;
+                e = de;
             }
+            else
+                reject();
         }
-        if (check("->"))
+        else if (check("->"))
         {
             if (tokit->type == IDENTIFIER)
             {
                 arrow_expression* ae = new arrow_expression;
-                ae->pfe = pe;
+                ae->pfe = e;
                 ae->id = *tokit;
-                return ae;
+                e = ae;
             }
+            else
+                reject();
         }
-        if (check("++"))
+        else if (check("++"))
         {
             postfix_increment_expression* ie = new postfix_increment_expression;
-            ie->pfe = pe;
-            return ie;
+            ie->pfe = e;
+            e = ie;
         }
-        if (check("--"))
+        else if (check("--"))
         {
             postfix_decrement_expression* de = new postfix_decrement_expression;
-            de->pfe = pe;
-            return de;
+            de->pfe = e;
+            e = de;
         }
-        reject();
+        else
+            break;
     }
-    return nullptr;
+    return e;
 }
 
 unary_expression* parser::parse_unary_expression()
@@ -164,7 +170,9 @@ unary_expression* parser::parse_unary_expression()
             sizeof_type_expression* se = new sizeof_type_expression;
             se->tn = parse_type_name();
             accept(")");
+            return se;
         }
+        reject();
     }
     return nullptr;
 }
@@ -190,263 +198,274 @@ cast_expression* parser::parse_cast_expression()
 
 multiplicative_expression* parser::parse_multiplicative_expression()
 {
-    if (cast_expression* ce = parse_cast_expression())
-    {
-        multiplicative_expression* me = new multiplicative_expression;
-        me->ce = ce;
-        return me;
-    }
-    if (multiplicative_expression* lhs = parse_multiplicative_expression())
+    cast_expression* ce = parse_cast_expression();
+    if (!ce)
+        return nullptr;
+
+    multiplicative_expression* lhs = new multiplicative_expression;
+    lhs->ce = ce;
+
+    while (true)
     {
         if (check("*"))
         {
             mul_expression* me = new mul_expression;
             me->lhs = lhs;
             me->rhs = parse_cast_expression();
-            return me;
+            lhs = me;
         }
-        if (check("/"))
+        else if (check("/"))
         {
-            div_expression* me = new div_expression;
-            me->lhs = lhs;
-            me->rhs = parse_cast_expression();
-            return me;
+            div_expression* de = new div_expression;
+            de->lhs = lhs;
+            de->rhs = parse_cast_expression();
+            lhs = de;
         }
-        if (check("%"))
+        else if (check("%"))
         {
             mod_expression* me = new mod_expression;
             me->lhs = lhs;
             me->rhs = parse_cast_expression();
-            return me;
+            lhs = me;
         }
-        reject();
+        else
+            break;
     }
-    return nullptr;
+    return lhs;
 }
 
 additive_expression* parser::parse_additive_expression()
 {
-    if (multiplicative_expression* me = parse_multiplicative_expression())
-    {
-        additive_expression* ae = new additive_expression;
-        ae->me = me;
-        return ae;
-    }
-    if (additive_expression* lhs = parse_additive_expression())
+    multiplicative_expression* me = parse_multiplicative_expression();
+    if (!me)
+        return nullptr;
+
+    additive_expression* lhs = new additive_expression;
+    lhs->me = me;
+
+    while (true)
     {
         if (check("+"))
         {
             add_expression* ae = new add_expression;
             ae->lhs = lhs;
             ae->rhs = parse_multiplicative_expression();
-            return ae;
+            lhs = ae;
         }
-        if (check("-"))
+        else if (check("-"))
         {
             sub_expression* se = new sub_expression;
             se->lhs = lhs;
             se->rhs = parse_multiplicative_expression();
-            return se;
+            lhs = se;
         }
-        reject();
+        else
+            break;
     }
-    return nullptr;
+    return lhs;
 }
 
 shift_expression* parser::parse_shift_expression()
 {
-    if (additive_expression* ae = parse_additive_expression())
-    {
-        shift_expression* se = new shift_expression;
-        se->ae = ae;
-        return se;
-    }
-    if (shift_expression* lhs = parse_shift_expression())
+    additive_expression* ae = parse_additive_expression();
+    if (!ae)
+        return nullptr;
+
+    shift_expression* lhs = new shift_expression;
+    lhs->ae = ae;
+
+    while (true)
     {
         if (check("<<"))
         {
             lshift_expression* ae = new lshift_expression;
             ae->lhs = lhs;
             ae->rhs = parse_additive_expression();
-            return ae;
+            lhs = ae;
         }
-        if (check(">>"))
+        else if (check(">>"))
         {
             rshift_expression* ae = new rshift_expression;
             ae->lhs = lhs;
             ae->rhs = parse_additive_expression();
-            return ae;
+            lhs = ae;
         }
-        reject();
+        else
+            break;
     }
-    return nullptr;
+    return lhs;
 }
 
 relational_expression* parser::parse_relational_expression()
 {
-    if (shift_expression* se = parse_shift_expression())
-    {
-        relational_expression* re = new relational_expression;
-        re->se = se;
-        return re;
-    }
-    if (relational_expression* lhs = parse_relational_expression())
+    shift_expression* se = parse_shift_expression();
+    if (!se)
+        return nullptr;
+
+
+    relational_expression* lhs = new relational_expression;
+    lhs->se = se;
+
+    while (true)
     {
         if (check("<"))
         {
             less_expression* le = new less_expression;
             le->lhs = lhs;
             le->rhs = parse_shift_expression();
-            return le;
+            lhs = le;
         }
-        if (check(">"))
+        else if (check(">"))
         {
             greater_expression* ge = new greater_expression;
             ge->lhs = lhs;
             ge->rhs = parse_shift_expression();
-            return ge;
+            lhs = ge;
         }
-        if (check("<="))
+        else if (check("<="))
         {
             less_equal_expression* le = new less_equal_expression;
             le->lhs = lhs;
             le->rhs = parse_shift_expression();
-            return le;
+            lhs = le;
         }
-        if (check(">="))
+        else if (check(">="))
         {
             greater_equal_expression* ge = new greater_equal_expression;
             ge->lhs = lhs;
             ge->rhs = parse_shift_expression();
-            return ge;
+            lhs = ge;
         }
-        reject();
+        else
+            break;
     }
-    return nullptr;
+    return lhs;
 }
 
 equality_expression* parser::parse_equality_expression()
 {
-    if (relational_expression* re = parse_relational_expression())
-    {
-        equality_expression* ee = new equality_expression;
-        ee->re = re;
-        return ee;
-    }
-    if (equality_expression* lhs = parse_equality_expression())
+    relational_expression* re = parse_relational_expression();
+    if (!re)
+        return nullptr;
+
+    equality_expression* lhs = new equality_expression;
+    lhs->re = re;
+
+    while (true)
     {
         if (check("=="))
         {
             equal_expression* ee = new equal_expression;
             ee->lhs = lhs;
             ee->rhs = parse_relational_expression();
-            return ee;
+            lhs = ee;
         }
         if (check("!="))
         {
             not_equal_expression* ne = new not_equal_expression;
             ne->lhs = lhs;
             ne->rhs = parse_relational_expression();
-            return ne;
+            lhs = ne;
         }
-        reject();
+        else
+            break;
     }
-    return nullptr;
+    return lhs;
 }
 
 and_expression* parser::parse_and_expression()
 {
-    if (equality_expression* ee = parse_equality_expression())
-    {
-        and_expression* ae = new and_expression;
-        ae->ee = ee;
-        return ae;
-    }
-    if (and_expression* lhs = parse_and_expression())
+    equality_expression* ee = parse_equality_expression();
+    if (!ee)
+        return nullptr;
+
+    and_expression* lhs = new and_expression;
+    lhs->ee = ee;
+
+    while (check("&"))
     {
         and_expression* ae = new and_expression;
         ae->lhs = lhs;
-        accept("&");
         ae->rhs = parse_equality_expression();
-        return ae;
+        lhs = ae;
     }
-    return nullptr;
+    return lhs;
 }
 
 exclusive_or_expression* parser::parse_exclusive_or_expression()
 {
-    if (and_expression* ae = parse_and_expression())
-    {
-        exclusive_or_expression* xe = new exclusive_or_expression;
-        xe->ae = ae;
-        return xe;
-    }
-    if (exclusive_or_expression* lhs = parse_exclusive_or_expression())
+    and_expression* ae = parse_and_expression();
+    if (!ae)
+        return nullptr;
+
+    exclusive_or_expression* lhs = new exclusive_or_expression;
+    lhs->ae = ae;
+
+    while (check("^"))
     {
         exclusive_or_expression* xe = new exclusive_or_expression;
         xe->lhs = lhs;
-        accept("^");
         xe->rhs = parse_and_expression();
-        return xe;
+        lhs = xe;
     }
-    return nullptr;
+    return lhs;
 }
 
 inclusive_or_expression* parser::parse_inclusive_or_expression()
 {
-    if (exclusive_or_expression* xe = parse_exclusive_or_expression())
-    {
-        inclusive_or_expression* ie = new inclusive_or_expression;
-        ie->xe = xe;
-        return ie;
-    }
-    if (inclusive_or_expression* lhs = parse_inclusive_or_expression())
+    exclusive_or_expression* xe = parse_exclusive_or_expression();
+    if (!xe)
+        return nullptr;
+
+    inclusive_or_expression* lhs = new inclusive_or_expression;
+    lhs->xe = xe;
+
+    while (check("|"))
     {
         inclusive_or_expression* oe = new inclusive_or_expression;
         oe->lhs = lhs;
-        accept("|");
         oe->rhs = parse_exclusive_or_expression();
-        return oe;
+        lhs = oe;
     }
-    return nullptr;
+    return lhs;
 }
 
 logical_and_expression* parser::parse_logical_and_expression()
 {
-    if (inclusive_or_expression* oe = parse_inclusive_or_expression())
-    {
-        logical_and_expression* ae = new logical_and_expression;
-        ae->oe = oe;
-        return ae;
-    }
-    if (logical_and_expression* lhs = parse_logical_and_expression())
+    inclusive_or_expression* oe = parse_inclusive_or_expression();
+    if (!oe)
+        return nullptr;
+
+    logical_and_expression* lhs = new logical_and_expression;
+    lhs->oe = oe;
+
+    while (check("&&"))
     {
         logical_and_expression* ae = new logical_and_expression;
         ae->lhs = lhs;
-        accept("&&");
         ae->rhs = parse_inclusive_or_expression();
-        return ae;
+        lhs = ae;
     }
-    return nullptr;
+    return lhs;
 }
 
 logical_or_expression* parser::parse_logical_or_expression()
 {
-    if (logical_and_expression* ae = parse_logical_and_expression())
-    {
-        logical_or_expression* oe = new logical_or_expression;
-        oe->ae = ae;
-        return oe;
-    }
-    if (logical_or_expression* lhs = parse_logical_or_expression())
+    logical_and_expression* ae = parse_logical_and_expression();
+    if (!ae)
+        return nullptr;
+
+    logical_or_expression* lhs = new logical_or_expression;
+    lhs->ae = ae;
+
+    while (check("||"))
     {
         logical_or_expression* oe = new logical_or_expression;
         oe->lhs = lhs;
-        accept("||");
         oe->rhs = parse_logical_and_expression();
-        return oe;
+        lhs = oe;
     }
-    return nullptr;
+    return lhs;
 }
 
 conditional_expression* parser::parse_conditional_expression()
@@ -462,9 +481,8 @@ conditional_expression* parser::parse_conditional_expression()
             ce->expr3 = parse_conditional_expression();
         }
         else
-        {
             ce->oe = oe;
-        }
+
         return ce;
     }
     return nullptr;
@@ -480,9 +498,12 @@ assignment_expression* parser::parse_assignment_expression()
     }
     if (unary_expression* ue = parse_unary_expression())
     {
+        assignment_expression* ae = new assignment_expression;
+        ae->lhs = ue;
         accept_any({"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|="});
-        // ...
-        parse_assignment_expression();
+        tokit++;
+        ae->rhs = parse_assignment_expression();
+        return ae;
     }
     return nullptr;
 }
