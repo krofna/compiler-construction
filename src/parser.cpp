@@ -65,7 +65,7 @@ postfix_expression* parser::parse_postfix_expression()
             {
                 dot_expression* de = new dot_expression;
                 de->pfe = e;
-                de->id = *tokit;
+                de->id = *tokit++;
                 e = de;
             }
             else
@@ -77,7 +77,7 @@ postfix_expression* parser::parse_postfix_expression()
             {
                 arrow_expression* ae = new arrow_expression;
                 ae->pfe = e;
-                ae->id = *tokit;
+                ae->id = *tokit++;
                 e = ae;
             }
             else
@@ -493,16 +493,12 @@ assignment_expression* parser::parse_assignment_expression()
     if (conditional_expression* ce = parse_conditional_expression())
     {
         assignment_expression* ae = new assignment_expression;
-        ae->ce = ce;
-        return ae;
-    }
-    if (unary_expression* ue = parse_unary_expression())
-    {
-        assignment_expression* ae = new assignment_expression;
-        ae->lhs = ue;
-        accept_any({"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|="});
-        tokit++;
-        ae->rhs = parse_assignment_expression();
+        ae->lhs = ce;
+        if (check_any({"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|="}))
+        {
+            tokit++;
+            ae->rhs = parse_assignment_expression();
+        }
         return ae;
     }
     return nullptr;
@@ -521,9 +517,8 @@ expression* parser::parse_expression()
     {
         expression* expr = new expression;
         expr->ae.push_back(ae);
-        do
+        while (check(","))
             expr->ae.push_back(parse_assignment_expression());
-        while (check(","));
         return expr;
     }
     return nullptr;
@@ -531,13 +526,20 @@ expression* parser::parse_expression()
 
 declaration* parser::parse_declaration()
 {
+    token_iter old = tokit;
     if (declaration_specifiers* ds = parse_declaration_specifiers())
     {
         declaration* decl = new declaration;
         decl->ds = ds;
         if (declarator* d = parse_declarator())
             decl->d = d;
-        accept(";");
+
+        if (!check(";"))
+        {
+            tokit = old;
+            delete decl;
+            return nullptr;
+        }
         return decl;
     }
     return nullptr;
@@ -1010,7 +1012,7 @@ jump_statement* parser::parse_jump_statement()
     if (check("goto"))
     {
         goto_statement* gs = new goto_statement;
-        gs->id = *tokit;
+        gs->id = *tokit++;
         accept(";");
         return gs;
     }
@@ -1047,10 +1049,19 @@ function_definition* parser::parse_function_definition()
 
 external_declaration* parser::parse_external_declaration()
 {
-    external_declaration* ed = new external_declaration;
-    while (tokit != tokens.end())
-        ed->fd.push_back(parse_function_definition());
-    return ed;
+    if (declaration* decl = parse_declaration())
+    {
+        external_declaration* ed = new external_declaration;
+        ed->decl = decl;
+        return ed;
+    }
+    if (function_definition* fd = parse_function_definition())
+    {
+        external_declaration* ed = new external_declaration;
+        ed->fd = fd;
+        return ed;
+    }
+    return nullptr;
 }
 
 translation_unit* parser::parse_translation_unit()

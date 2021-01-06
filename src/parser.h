@@ -118,6 +118,12 @@ struct declarator
 
 struct declaration
 {
+    ~declaration()
+    {
+        delete ds;
+        delete d;
+    }
+
     declaration_specifiers* ds;
     declarator* d = nullptr;
 };
@@ -378,8 +384,7 @@ struct conditional_expression
 
 struct assignment_expression
 {
-    conditional_expression* ce = nullptr;
-    unary_expression* lhs = nullptr;
+    conditional_expression* lhs = nullptr;
     assignment_expression* rhs = nullptr;
 };
 
@@ -521,12 +526,8 @@ struct function_definition
 
 struct external_declaration
 {
-    ~external_declaration()
-    {
-        for (function_definition* d : fd)
-            delete d;
-    }
-    vector<function_definition*> fd;
+    function_definition* fd = nullptr;
+    declaration* decl = nullptr;
 };
 
 struct translation_unit
