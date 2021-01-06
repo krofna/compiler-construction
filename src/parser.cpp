@@ -537,6 +537,7 @@ declaration* parser::parse_declaration()
         decl->ds = ds;
         if (declarator* d = parse_declarator())
             decl->d = d;
+        accept(";");
         return decl;
     }
     return nullptr;
@@ -597,6 +598,9 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
         }
         else
         {
+            if (tokit->type != IDENTIFIER)
+                reject();
+
             ss->id = *tokit++;
             if (check("{"))
             {
@@ -617,6 +621,7 @@ struct_declaration* parser::parse_struct_declaration()
         sd->ts = ts;
         sd->ds = parse_struct_declarator_list();
         accept(";");
+        return sd;
     }
     return nullptr;
 }
@@ -898,7 +903,11 @@ compound_statement* parser::parse_compound_statement()
     {
         compound_statement* cs = new compound_statement;
         while (!check("}"))
+        {
             cs->bi.push_back(parse_block_item());
+            if (!cs->bi.back())
+                reject();
+        }
         return cs;
     }
     return nullptr;
