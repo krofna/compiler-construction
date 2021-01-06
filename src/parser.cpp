@@ -22,7 +22,7 @@ primary_expression* parser::parse_primary_expression()
     }
     if (check("("))
     {
-        primary_expression* pe = new primary_expression;
+        parenthesized_expression* pe = new parenthesized_expression;
         pe->expr = parse_expression();
         accept(")");
         return pe;
@@ -306,7 +306,6 @@ relational_expression* parser::parse_relational_expression()
     if (!se)
         return nullptr;
 
-
     relational_expression* lhs = new relational_expression;
     lhs->se = se;
 
@@ -500,7 +499,7 @@ assignment_expression* parser::parse_assignment_expression()
         ae->lhs = ce;
         if (check_any({"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|="}))
         {
-            tokit++;
+            ae->op = *tokit++;
             ae->rhs = parse_assignment_expression();
         }
         return ae;
