@@ -658,7 +658,7 @@ declarator* parser::parse_declarator()
     return nullptr;
 }
 
-direct_declarator* parser::parse_direct_declarator()
+direct_declarator* parser::parse_nof_direct_declarator()
 {
     if (tokit->type == IDENTIFIER)
     {
@@ -673,16 +673,24 @@ direct_declarator* parser::parse_direct_declarator()
         accept(")");
         return pd;
     }
-    if (direct_declarator* dd = parse_direct_declarator())
+    return nullptr;
+}
+
+direct_declarator* parser::parse_direct_declarator()
+{
+    if (direct_declarator* dd = parse_nof_direct_declarator())
     {
-        function_declarator* fd = new function_declarator;
-        fd->dd = dd;
-        accept("(");
-        fd->pl = parse_parameter_type_list();
-        if (fd->pl.empty())
-            reject();
-        accept(")");
-        return fd;
+        if (check("("))
+        {
+            function_declarator* fd = new function_declarator;
+            fd->dd = dd;
+            fd->pl = parse_parameter_type_list();
+            if (fd->pl.empty())
+                reject();
+            accept(")");
+            return fd;
+        }
+        return dd;
     }
     return nullptr;
 }

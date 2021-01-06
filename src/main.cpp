@@ -21,7 +21,6 @@ int task_b(const char* filename)
 int task_cde(const char* filename, bool print)
 {
     vector<token> tokens = tokenize_file(filename);
-    bool failure = false;
     for (auto tok : tokens)
         if (tok.type == INVALID)
             return EXIT_FAILURE;
@@ -33,7 +32,7 @@ int task_cde(const char* filename, bool print)
             tu->print();
         delete tu;
     }
-    catch (exception e)
+    catch (const exception& e)
     {
         cerr << e.what() << endl;
         return EXIT_FAILURE;

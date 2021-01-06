@@ -643,6 +643,7 @@ private:
     vector<parameter_declaration*> parse_parameter_type_list();
     pointer* parse_pointer();
     parameter_declaration* parse_parameter_declaration();
+    direct_declarator* parse_nof_direct_declarator();
     direct_declarator* parse_direct_declarator();
     declarator* parse_declarator();
     block_item* parse_block_item();
