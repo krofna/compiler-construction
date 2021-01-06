@@ -570,7 +570,7 @@ private:
 
     bool check(const string& what)
     {
-        if (tokit == tokens.end() || tokit->str == what)
+        if (tokit == tokens.end() || tokit->str != what)
             return false;
         return ++tokit, true;
     }
@@ -586,7 +586,7 @@ private:
     void accept(const string& what)
     {
         if (!check(what))
-            throw error(tokit);
+            reject();
     }
 
     void accept_any(const vector<string>& what)

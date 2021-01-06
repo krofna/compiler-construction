@@ -505,18 +505,26 @@ expression* parser::parse_expression()
 
 declaration* parser::parse_declaration()
 {
-    declaration* decl = new declaration;
-    decl->ds = parse_declaration_specifiers();
-    if (declarator* d = parse_declarator())
-        decl->d = d;
-    return decl;
+    if (declaration_specifiers* ds = parse_declaration_specifiers())
+    {
+        declaration* decl = new declaration;
+        decl->ds = ds;
+        if (declarator* d = parse_declarator())
+            decl->d = d;
+        return decl;
+    }
+    return nullptr;
 }
 
 declaration_specifiers* parser::parse_declaration_specifiers()
 {
-    declaration_specifiers* ds = new declaration_specifiers;
-    ds->ts = parse_type_specifier();
-    return ds;
+    if (type_specifier* ts = parse_type_specifier())
+    {
+        declaration_specifiers* ds = new declaration_specifiers;
+        ds->ts = ts;
+        return ds;
+    }
+    return nullptr;
 }
 
 storage_class_specifier* parser::parse_storage_class_specifier()
@@ -731,18 +739,21 @@ direct_abstract_declarator* parser::parse_direct_abstract_declarator()
     {
         direct_abstract_declarator* dad = new direct_abstract_declarator;
         if (abstract_declarator* ad = parse_abstract_declarator())
+        {
             dad->ad = ad;
+            accept(")");
+            if (check("("))
+            {
+                dad->pl = parse_parameter_type_list();
+                accept(")");
+            }
+        }
         else
+        {
             dad->pl = parse_parameter_type_list();
-        accept(")");
+            accept(")");
+        }
         return dad;
-    }
-    if (direct_abstract_declarator* dad = parse_direct_abstract_declarator())
-    {
-        direct_abstract_declarator* d = new direct_abstract_declarator;
-        d->dad = dad;
-        d->pl = parse_parameter_type_list();
-        return d;
     }
     return nullptr;
 }
@@ -849,11 +860,14 @@ labeled_statement* parser::parse_labeled_statement()
 
 compound_statement* parser::parse_compound_statement()
 {
-    compound_statement* cs = new compound_statement;
-    accept("{");
-    while (!check("}"))
-        cs->bi.push_back(parse_block_item());
-    return cs;
+    if (check("{"))
+    {
+        compound_statement* cs = new compound_statement;
+        while (!check("}"))
+            cs->bi.push_back(parse_block_item());
+        return cs;
+    }
+    return nullptr;
 }
 
 block_item* parser::parse_block_item()
