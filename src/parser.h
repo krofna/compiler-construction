@@ -546,7 +546,7 @@ public:
     struct error : exception
     {
         token_iter tokit;
-    public:
+
         error(token_iter tokit) : tokit(tokit)
         {
         }

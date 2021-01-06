@@ -5,19 +5,19 @@ primary_expression* parser::parse_primary_expression()
     if (tokit->type == IDENTIFIER)
     {
         primary_expression* pe = new primary_expression;
-        pe->tok = *tokit;
+        pe->tok = *tokit++;
         return pe;
     }
     if (tokit->type == CONSTANT)
     {
         primary_expression* pe = new primary_expression;
-        pe->tok = *tokit;
+        pe->tok = *tokit++;
         return pe;
     }
     if (tokit->type == STRING_LITERAL)
     {
         primary_expression* pe = new primary_expression;
-        pe->tok = *tokit;
+        pe->tok = *tokit++;
         return pe;
     }
     if (check("("))
@@ -517,11 +517,16 @@ constant_expression* parser::parse_constant_expression()
 
 expression* parser::parse_expression()
 {
-    expression* expr = new expression;
-    do
-        expr->ae.push_back(parse_assignment_expression());
-    while (check(","));
-    return expr;
+    if (assignment_expression* ae = parse_assignment_expression())
+    {
+        expression* expr = new expression;
+        expr->ae.push_back(ae);
+        do
+            expr->ae.push_back(parse_assignment_expression());
+        while (check(","));
+        return expr;
+    }
+    return nullptr;
 }
 
 declaration* parser::parse_declaration()
@@ -858,8 +863,14 @@ labeled_statement* parser::parse_labeled_statement()
 {
     if (tokit->type == IDENTIFIER)
     {
+        token id = *tokit++;
+        if (!check(":"))
+        {
+            tokit--;
+            return nullptr;
+        }
         goto_label* gl = new goto_label;
-        gl->id = *tokit;
+        gl->id = id;
         gl->stat = parse_statement();
         return gl;
     }
@@ -867,12 +878,14 @@ labeled_statement* parser::parse_labeled_statement()
     {
         case_label* cl = new case_label;
         cl->ce = parse_constant_expression();
+        accept(":");
         cl->stat = parse_statement();
         return cl;
     }
     if (check("default"))
     {
         default_label* dl = new default_label;
+        accept(":");
         dl->stat = parse_statement();
         return dl;
     }
@@ -910,10 +923,14 @@ block_item* parser::parse_block_item()
 
 expression_statement* parser::parse_expression_statement()
 {
-    expression_statement* es = new expression_statement;
-    es->expr = parse_expression();
-    accept(";");
-    return es;
+    if (expression* expr = parse_expression())
+    {
+        expression_statement* es = new expression_statement;
+        es->expr = expr;
+        accept(";");
+        return es;
+    }
+    return nullptr;
 }
 
 selection_statement* parser::parse_selection_statement()

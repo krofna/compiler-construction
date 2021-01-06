@@ -32,9 +32,9 @@ int task_cde(const char* filename, bool print)
             tu->print();
         delete tu;
     }
-    catch (const exception& e)
+    catch (const parser::error& e)
     {
-        cerr << e.what() << endl;
+        cerr << e.tokit->row << " " << e.tokit->col << " " << e.what() << endl;
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
