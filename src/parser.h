@@ -25,20 +25,38 @@ struct builtin_type_specifier : type_specifier
     token tok;
 };
 
+struct declarator;
+
+struct struct_declaration
+{
+    type_specifier* ts;
+    vector<declarator*> ds;
+};
+
 struct struct_or_union_specifier : type_specifier
 {
     token sou;
     token id;
+    vector<struct_declaration*> sds;
 };
 
-struct abstract_declarator
-{
-};
+struct abstract_declarator;
+struct parameter_declaration;
 
 struct direct_abstract_declarator
 {
+    abstract_declarator* ad = nullptr;
+    direct_abstract_declarator* dad = nullptr;
+    vector<parameter_declaration*> pl;
 };
 
+struct pointer;
+
+struct abstract_declarator
+{
+    pointer* p = nullptr;
+    direct_abstract_declarator* dad = nullptr;
+};
 
 struct type_name
 {
@@ -614,10 +632,15 @@ private:
     statement* parse_statement();
     type_qualifier* parse_type_qualifier();
     type_specifier* parse_type_specifier();
+    struct_or_union_specifier* parse_struct_or_union_specifier();
+    struct_declaration* parse_struct_declaration();
+    vector<declarator*> parse_struct_declarator_list();
+    vector<struct_declaration*> parse_struct_declaration_list();
     direct_abstract_declarator* parse_direct_abstract_declarator();
     abstract_declarator* parse_abstract_declarator();
     type_name* parse_type_name();
     declaration_specifiers* parse_declaration_specifiers();
+    vector<parameter_declaration*> parse_parameter_type_list();
     pointer* parse_pointer();
     parameter_declaration* parse_parameter_declaration();
     direct_declarator* parse_direct_declarator();

@@ -156,7 +156,7 @@ unary_expression* parser::parse_unary_expression()
         if (unary_expression* ue = parse_unary_expression())
         {
             sizeof_expression* se = new sizeof_expression;
-            se->ue = parse_unary_expression();
+            se->ue = ue;
             return se;
         }
         if (check("("))
@@ -396,7 +396,7 @@ inclusive_or_expression* parser::parse_inclusive_or_expression()
 {
     if (exclusive_or_expression* xe = parse_exclusive_or_expression())
     {
-        inclusive_or_expression* ie;
+        inclusive_or_expression* ie = new inclusive_or_expression;
         ie->xe = xe;
         return ie;
     }
@@ -415,7 +415,7 @@ logical_and_expression* parser::parse_logical_and_expression()
 {
     if (inclusive_or_expression* oe = parse_inclusive_or_expression())
     {
-        logical_and_expression* ae;
+        logical_and_expression* ae = new logical_and_expression;
         ae->oe = oe;
         return ae;
     }
@@ -545,15 +545,72 @@ type_specifier* parser::parse_type_specifier()
         ts->tok = *tokit++;
         return ts;
     }
+    if (struct_or_union_specifier* ss = parse_struct_or_union_specifier())
+        return ss;
+    return nullptr;
+}
+
+struct_or_union_specifier* parser::parse_struct_or_union_specifier()
+{
     if (check_any({"struct", "union"}))
     {
         struct_or_union_specifier* ss = new struct_or_union_specifier;
         ss->sou = *tokit++;
-        ss->id = *tokit++;
+        if (check("{"))
+        {
+            ss->sds = parse_struct_declaration_list();
+            accept("}");
+        }
+        else
+        {
+            ss->id = *tokit++;
+            if (check("{"))
+            {
+                ss->sds = parse_struct_declaration_list();
+                accept("}");
+            }
+        }
         return ss;
     }
     return nullptr;
 }
+
+struct_declaration* parser::parse_struct_declaration()
+{
+    if (type_specifier* ts = parse_type_specifier())
+    {
+        struct_declaration* sd = new struct_declaration;
+        sd->ts = ts;
+        sd->ds = parse_struct_declarator_list();
+        accept(";");
+    }
+    return nullptr;
+}
+
+vector<declarator*> parser::parse_struct_declarator_list()
+{
+    vector<declarator*> ds;
+    if (declarator* d = parse_declarator())
+    {
+        ds.push_back(d);
+        while (check(","))
+        {
+            ds.push_back(parse_declarator());
+            if (!ds.back())
+                reject();
+        }
+    }
+    return ds;
+}
+
+vector<struct_declaration*> parser::parse_struct_declaration_list()
+{
+    vector<struct_declaration*> sds;
+    while (struct_declaration* sd = parse_struct_declaration())
+        sds.push_back(sd);
+    return sds;
+}
+
 
 type_qualifier* parser::parse_type_qualifier()
 {
@@ -595,7 +652,7 @@ declarator* parser::parse_declarator()
     if (direct_declarator* dd = parse_direct_declarator())
     {
         declarator* decl = new declarator;
-        decl->dd = parse_direct_declarator();
+        decl->dd = dd;
         return decl;
     }
     return nullptr;
@@ -620,12 +677,30 @@ direct_declarator* parser::parse_direct_declarator()
     {
         function_declarator* fd = new function_declarator;
         fd->dd = dd;
-        do
-            fd->pl.push_back(parse_parameter_declaration());
-        while (check(","));
+        accept("(");
+        fd->pl = parse_parameter_type_list();
+        if (fd->pl.empty())
+            reject();
+        accept(")");
         return fd;
     }
     return nullptr;
+}
+
+vector<parameter_declaration*> parser::parse_parameter_type_list()
+{
+    vector<parameter_declaration*> pl;
+    if (parameter_declaration* pd = parse_parameter_declaration())
+    {
+        pl.push_back(pd);
+        while (check(","))
+        {
+            pl.push_back(parse_parameter_declaration());
+            if (!pl.back())
+                reject();
+        }
+    }
+    return pl;
 }
 
 pointer* parser::parse_pointer()
@@ -644,11 +719,22 @@ pointer* parser::parse_pointer()
 
 direct_abstract_declarator* parser::parse_direct_abstract_declarator()
 {
-    // ...
     if (check("("))
     {
-        parse_abstract_declarator();
+        direct_abstract_declarator* dad = new direct_abstract_declarator;
+        if (abstract_declarator* ad = parse_abstract_declarator())
+            dad->ad = ad;
+        else
+            dad->pl = parse_parameter_type_list();
         accept(")");
+        return dad;
+    }
+    if (direct_abstract_declarator* dad = parse_direct_abstract_declarator())
+    {
+        direct_abstract_declarator* d = new direct_abstract_declarator;
+        d->dad = dad;
+        d->pl = parse_parameter_type_list();
+        return d;
     }
     return nullptr;
 }
@@ -658,11 +744,15 @@ abstract_declarator* parser::parse_abstract_declarator()
     if (pointer* p = parse_pointer())
     {
         abstract_declarator* ad = new abstract_declarator;
+        ad->p = p;
         if (direct_abstract_declarator* dad = parse_direct_abstract_declarator())
-        {
-            // ...
-            ;
-        }
+            ad->dad = dad;
+        return ad;
+    }
+    else if (direct_abstract_declarator* dad = parse_direct_abstract_declarator())
+    {
+        abstract_declarator* ad = new abstract_declarator;
+        ad->dad = dad;
         return ad;
     }
     return nullptr;
@@ -697,14 +787,11 @@ parameter_declaration* parser::parse_parameter_declaration()
     if (declaration_specifiers* ds = parse_declaration_specifiers())
     {
         parameter_declaration* pd = new parameter_declaration;
+        pd->ds = ds;
         if (declarator* decl = parse_declarator())
-        {
             pd->decl = decl;
-        }
         else
-        {
             pd->ad = parse_abstract_declarator();
-        }
         return pd;
     }
     return nullptr;
