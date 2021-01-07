@@ -181,7 +181,7 @@ struct parenthesized_expression : primary_expression
 
 struct postfix_expression
 {
-    void print();
+    virtual void print();
 
     postfix_expression* pfe = nullptr;
     primary_expression* pe = nullptr;
@@ -229,7 +229,7 @@ struct postfix_decrement_expression : postfix_expression
 
 struct unary_expression
 {
-    void print();
+    virtual void print();
 
     postfix_expression* pe = nullptr;
 };

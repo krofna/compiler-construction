@@ -157,10 +157,7 @@ void parenthesized_expression::print()
 
 void postfix_expression::print()
 {
-    if (pfe)
-        pfe->print();
-    if (pe)
-        pe->print();
+    pe->print();
 }
 
 void subscript_expression::print()
@@ -173,9 +170,16 @@ void subscript_expression::print()
 
 void call_expression::print()
 {
+    pfe->print();
     cout << "(";
+    bool flg = false;
     for (assignment_expression* ae : args)
+    {
+        if (flg)
+            cout << ", ";
+        flg = true;
         ae->print();
+    }
     cout << ")";
 }
 
