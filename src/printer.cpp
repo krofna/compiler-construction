@@ -2,59 +2,95 @@
 #include <iostream>
 
 static int depth = 0;
+static vector<char> buffer;
+
+struct printer
+{
+    ~printer()
+    {
+        flush(cout);
+    }
+
+    printer& operator << (const string& x)
+    {
+        for (char c : x)
+            buffer.push_back(c);
+        return *this;
+    }
+
+    printer& operator << (char x)
+    {
+        buffer.push_back(x);
+        return *this;
+    }
+
+    void flush(ostream& out)
+    {
+        for (char c : buffer)
+            out << c;
+
+        buffer = vector<char>();
+    }
+} pout;
 
 static void indent()
 {
     for (int i = 0; i < depth; ++i)
-        cout << "\t";
+        pout << "\t";
+}
+
+static void unindent()
+{
+    for (int i = 0; i < depth; ++i)
+        buffer.pop_back();
 }
 
 void type_qualifier::print()
 {
-    cout << tok.str;
+    pout << tok.str;
 }
 
 void builtin_type_specifier::print()
 {
-    cout << tok.str;
+    pout << tok.str;
 }
 
 void struct_declaration::print()
 {
     ts->print();
-    cout << " ";
+    pout << " ";
     bool flg = false;
     for (declarator* d : ds)
     {
         if (flg)
-            cout << ",";
+            pout << ",";
         flg = true;
         d->print();
     }
-    cout << ";";
+    pout << ";";
 }
 
 void struct_or_union_specifier::print()
 {
-    cout << sou.str;
+    pout << sou.str;
     if (id.type != INVALID)
-        cout << " " << id.str;
+        pout << " " << id.str;
 
     if (has_sds)
     {
-        cout << "\n";
+        pout << "\n";
         indent();
-        cout << "{\n";
+        pout << "{\n";
         depth++;
         for (struct_declaration* sd : sds)
         {
             indent();
             sd->print();
-            cout << "\n";
+            pout << "\n";
         }
         depth--;
         indent();
-        cout << "}";
+        pout << "}";
     }
 }
 
@@ -90,24 +126,24 @@ void declaration_specifiers::print()
 
 void storage_class_specifier::print()
 {
-    cout << tok.str;
+    pout << tok.str;
 }
 
 void function_specifier::print()
 {
-    cout << tok.str;
+    pout << tok.str;
 }
 
 void direct_declarator::print()
 {
-    cout << tok.str;
+    pout << tok.str;
 }
 
 void parenthesized_declarator::print()
 {
-    cout << "(";
+    pout << "(";
     decl->print();
-    cout << ")";
+    pout << ")";
 }
 
 void parameter_declaration::print()
@@ -115,7 +151,7 @@ void parameter_declaration::print()
     ds->print();
     if (decl)
     {
-        cout << " ";
+        pout << " ";
         decl->print();
     }
     if (ad)
@@ -125,21 +161,21 @@ void parameter_declaration::print()
 void function_declarator::print()
 {
     dd->print();
-    cout << "(";
+    pout << "(";
     bool flg = false;
     for (parameter_declaration* pd : pl)
     {
         if (flg)
-            cout << ", ";
+            pout << ", ";
         flg = true;
         pd->print();
     }
-    cout << ")";
+    pout << ")";
 }
 
 void pointer::print()
 {
-    cout << "*";
+    pout << "*";
     for (type_qualifier* tq : tql)
         tq->print();
 
@@ -160,22 +196,22 @@ void declaration::print()
     ds->print();
     if (d)
     {
-        cout << " ";
+        pout << " ";
         d->print();
     }
-    cout << ";";
+    pout << ";";
 }
 
 void primary_expression::print()
 {
-    cout << tok.str;
+    pout << tok.str;
 }
 
 void parenthesized_expression::print()
 {
-    cout << "(";
+    pout << "(";
     expr->print();
-    cout << ")";
+    pout << ")";
 }
 
 void postfix_expression::print()
@@ -186,48 +222,48 @@ void postfix_expression::print()
 void subscript_expression::print()
 {
     pfe->print();
-    cout << "[";
+    pout << "[";
     expr->print();
-    cout << "]";
+    pout << "]";
 }
 
 void call_expression::print()
 {
     pfe->print();
-    cout << "(";
+    pout << "(";
     bool flg = false;
     for (assignment_expression* ae : args)
     {
         if (flg)
-            cout << ", ";
+            pout << ", ";
         flg = true;
         ae->print();
     }
-    cout << ")";
+    pout << ")";
 }
 
 void dot_expression::print()
 {
     pfe->print();
-    cout << "." << id.str;
+    pout << "." << id.str;
 }
 
 void arrow_expression::print()
 {
     pfe->print();
-    cout << "->" << id.str;
+    pout << "->" << id.str;
 }
 
 void postfix_increment_expression::print()
 {
     pfe->print();
-    cout << "++";
+    pout << "++";
 }
 
 void postfix_decrement_expression::print()
 {
     pfe->print();
-    cout << "--";
+    pout << "--";
 }
 
 void unary_expression::print()
@@ -237,63 +273,63 @@ void unary_expression::print()
 
 void prefix_increment_expression::print()
 {
-    cout << "++";
+    pout << "++";
     ue->print();
 }
 
 void prefix_decrement_expression::print()
 {
-    cout << "--";
+    pout << "--";
     ue->print();
 }
 
 void unary_and_expression::print()
 {
-    cout << "&";
+    pout << "&";
     ce->print();
 }
 
 void unary_star_expression::print()
 {
-    cout << "*";
+    pout << "*";
     ce->print();
 }
 
 void unary_plus_expression::print()
 {
-    cout << "+";
+    pout << "+";
     ce->print();
 }
 
 void unary_minus_expression::print()
 {
-    cout << "-";
+    pout << "-";
     ce->print();
 }
 
 void unary_tilde_expression::print()
 {
-    cout << "~";
+    pout << "~";
     ce->print();
 }
 
 void unary_not_expression::print()
 {
-    cout << "!";
+    pout << "!";
     ce->print();
 }
 
 void sizeof_expression::print()
 {
-    cout << "sizeof ";
+    pout << "sizeof ";
     ue->print();
 }
 
 void sizeof_type_expression::print()
 {
-    cout << "sizeof(";
+    pout << "sizeof(";
     tn->print();
-    cout << ")";
+    pout << ")";
 }
 
 void cast_expression::print()
@@ -303,9 +339,9 @@ void cast_expression::print()
 
     if (tn)
     {
-        cout << "(";
+        pout << "(";
         tn->print();
-        cout << ")";
+        pout << ")";
         ce->print();
     }
 }
@@ -318,21 +354,21 @@ void multiplicative_expression::print()
 void mul_expression::print()
 {
     lhs->print();
-    cout << " * ";
+    pout << " * ";
     rhs->print();
 }
 
 void div_expression::print()
 {
     lhs->print();
-    cout << " / ";
+    pout << " / ";
     rhs->print();
 }
 
 void mod_expression::print()
 {
     lhs->print();
-    cout << " % ";
+    pout << " % ";
     rhs->print();
 }
 
@@ -344,14 +380,14 @@ void additive_expression::print()
 void add_expression::print()
 {
     lhs->print();
-    cout << " + ";
+    pout << " + ";
     rhs->print();
 }
 
 void sub_expression::print()
 {
     lhs->print();
-    cout << " - ";
+    pout << " - ";
     rhs->print();
 }
 
@@ -363,14 +399,14 @@ void shift_expression::print()
 void rshift_expression::print()
 {
     lhs->print();
-    cout << " >> ";
+    pout << " >> ";
     rhs->print();
 }
 
 void lshift_expression::print()
 {
     lhs->print();
-    cout << " << ";
+    pout << " << ";
     rhs->print();
 }
 
@@ -382,28 +418,28 @@ void relational_expression::print()
 void less_expression::print()
 {
     lhs->print();
-    cout << " < ";
+    pout << " < ";
     rhs->print();
 }
 
 void greater_expression::print()
 {
     lhs->print();
-    cout << " > ";
+    pout << " > ";
     rhs->print();
 }
 
 void less_equal_expression::print()
 {
     lhs->print();
-    cout << " <= ";
+    pout << " <= ";
     rhs->print();
 }
 
 void greater_equal_expression::print()
 {
     lhs->print();
-    cout << " >= ";
+    pout << " >= ";
     rhs->print();
 }
 
@@ -415,14 +451,14 @@ void equality_expression::print()
 void equal_expression::print()
 {
     lhs->print();
-    cout << " == ";
+    pout << " == ";
     rhs->print();
 }
 
 void not_equal_expression::print()
 {
     lhs->print();
-    cout << " != ";
+    pout << " != ";
     rhs->print();
 }
 
@@ -433,7 +469,7 @@ void and_expression::print()
     else
     {
         lhs->print();
-        cout << " & ";
+        pout << " & ";
         rhs->print();
     }
 }
@@ -445,7 +481,7 @@ void exclusive_or_expression::print()
     else
     {
         lhs->print();
-        cout << " ^ ";
+        pout << " ^ ";
         rhs->print();
     }
 }
@@ -457,7 +493,7 @@ void inclusive_or_expression::print()
     else
     {
         lhs->print();
-        cout << " | ";
+        pout << " | ";
         rhs->print();
     }
 }
@@ -469,7 +505,7 @@ void logical_and_expression::print()
     else
     {
         lhs->print();
-        cout << " && ";
+        pout << " && ";
         rhs->print();
     }
 }
@@ -481,7 +517,7 @@ void logical_or_expression::print()
     else
     {
         lhs->print();
-        cout << " || ";
+        pout << " || ";
         rhs->print();
     }
 }
@@ -493,9 +529,9 @@ void conditional_expression::print()
     else
     {
         expr1->print();
-        cout << " ? ";
+        pout << " ? ";
         expr2->print();
-        cout << " : ";
+        pout << " : ";
         expr3->print();
     }
 }
@@ -505,7 +541,7 @@ void assignment_expression::print()
     lhs->print();
     if (rhs)
     {
-        cout << " " << op.str << " ";
+        pout << " " << op.str << " ";
         rhs->print();
     }
 }
@@ -521,7 +557,7 @@ void expression::print()
     for (assignment_expression* ae : ae)
     {
         if (flg)
-            cout << ",";
+            pout << ",";
         flg = true;
         ae->print();
     }
@@ -529,112 +565,129 @@ void expression::print()
 
 void goto_label::print()
 {
-    cout << id.str << ":\n";
+    unindent();
+    pout << id.str << ":\n";
+    indent();
     stat->print();
 }
 
 void case_label::print()
 {
-    cout << "case ";
+    pout << "case ";
     ce->print();
-    cout << ":";
+    pout << ":";
     stat->print();
 }
 
 void default_label::print()
 {
-    cout << "default:";
+    pout << "default:";
     stat->print();
 }
 
 void expression_statement::print()
 {
     expr->print();
-    cout << ";";
+    pout << ";";
+}
+
+static bool selection_helper(statement* stat)
+{
+    bool no_block = dynamic_cast<compound_statement*>(stat) == nullptr;
+    if (no_block)
+    {
+        pout << "\n";
+        depth++;
+        indent();
+    }
+    else
+        pout << " ";
+
+    stat->print();
+    if (no_block)
+        depth--;
+
+    return no_block;
 }
 
 void if_statement::print()
 {
-    cout << "if (";
+    pout << "if (";
     expr->print();
-    cout << ") ";
-    bool no_block = dynamic_cast<compound_statement*>(stat) == nullptr;
-    if (no_block)
-    {
-        cout << "\n";
-        depth++;
-        indent();
-        depth--;
-    }
-    stat->print();
-    if (no_block)
-    {
-        cout << "\n";
-        indent();
-    }
+    pout << ")";
+    bool no_block = selection_helper(stat);
     if (estat)
     {
-        cout << "else ";
+        if (no_block)
+        {
+            pout << "\n";
+            indent();
+        }
+
+        if (!no_block)
+            pout << " ";
+
+        pout << "else ";
         estat->print();
     }
 }
 
 void switch_statement::print()
 {
-    cout << "switch (";
+    pout << "switch (";
     expr->print();
-    cout << ") ";
+    pout << ")";
     stat->print();
 }
 
 void while_statement::print()
 {
-    cout << "while (";
+    pout << "while (";
     expr->print();
-    cout << ") ";
-    stat->print();
+    pout << ")";
+    selection_helper(stat);
 }
 
 void do_while_statement::print()
 {
-    cout << "do";
+    pout << "do";
     stat->print();
-    cout << "while";
+    pout << "while";
     expr->print();
 }
 
 void for_statement::print()
 {
-    cout << "for (";
+    pout << "for (";
     expr1->print();
-    cout << ";";
+    pout << ";";
     expr2->print();
-    cout << ";";
+    pout << ";";
     expr3->print();
-    cout << ")";
-    stat->print();
+    pout << ")";
+    selection_helper(stat);
 }
 
 void goto_statement::print()
 {
-    cout << "goto " << id.str << ";";
+    pout << "goto " << id.str << ";";
 }
 
 void continue_statement::print()
 {
-    cout << "continue;";
+    pout << "continue;";
 }
 
 void break_statement::print()
 {
-    cout << "break;";
+    pout << "break;";
 }
 
 void return_statement::print()
 {
-    cout << "return ";
+    pout << "return ";
     expr->print();
-    cout << ";";
+    pout << ";";
 }
 
 void declaration_item::print()
@@ -649,25 +702,25 @@ void statement_item::print()
 
 void compound_statement::print()
 {
-    cout << "{\n";
+    pout << "{\n";
     depth++;
     for (block_item* i : bi)
     {
         indent();
         i->print();
-        cout << '\n';
+        pout << '\n';
     }
     depth--;
     indent();
-    cout << "}";
+    pout << "}";
 }
 
 void function_definition::print()
 {
     ds->print();
-    cout << " ";
+    pout << " ";
     dec->print();
-    cout << "\n";
+    pout << "\n";
     cs->print();
 }
 
@@ -681,9 +734,13 @@ void external_declaration::print()
 
 void translation_unit::print()
 {
+    bool flg = false;
     for (external_declaration* ed : ed)
     {
+        if (flg)
+            pout << "\n";
+        flg = true;
         ed->print();
-        cout << "\n\n";
+        pout << "\n";
     }
 }
