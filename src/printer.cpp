@@ -558,7 +558,20 @@ void if_statement::print()
     cout << "if (";
     expr->print();
     cout << ") ";
+    bool no_block = dynamic_cast<compound_statement*>(stat) == nullptr;
+    if (no_block)
+    {
+        cout << "\n";
+        depth++;
+        indent();
+        depth--;
+    }
     stat->print();
+    if (no_block)
+    {
+        cout << "\n";
+        indent();
+    }
     if (estat)
     {
         cout << "else ";
