@@ -58,7 +58,6 @@ struct direct_abstract_declarator
     void print();
 
     abstract_declarator* ad = nullptr;
-    direct_abstract_declarator* dad = nullptr;
     vector<parameter_declaration*> pl;
 };
 
@@ -168,7 +167,7 @@ struct expression;
 
 struct primary_expression
 {
-    void print();
+    virtual void print();
 
     token tok;
 };
@@ -318,9 +317,9 @@ struct cast_expression
 
 struct multiplicative_expression
 {
-    void print();
+    virtual void print();
 
-    cast_expression* ce;
+    cast_expression* ce = nullptr;
 };
 
 struct mul_expression : multiplicative_expression
@@ -349,7 +348,7 @@ struct mod_expression : multiplicative_expression
 
 struct additive_expression
 {
-    void print();
+    virtual void print();
 
     multiplicative_expression* me;
 };
@@ -372,7 +371,7 @@ struct sub_expression : additive_expression
 
 struct shift_expression
 {
-    void print();
+    virtual void print();
 
     additive_expression* ae;
 };
@@ -395,7 +394,7 @@ struct lshift_expression : shift_expression
 
 struct relational_expression
 {
-    void print();
+    virtual void print();
 
     shift_expression* se;
 };
@@ -434,7 +433,7 @@ struct greater_equal_expression : relational_expression
 
 struct equality_expression
 {
-    void print();
+    virtual void print();
 
     relational_expression* re;
 };

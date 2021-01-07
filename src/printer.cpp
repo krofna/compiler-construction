@@ -44,8 +44,6 @@ void direct_abstract_declarator::print()
 {
     if (ad)
         ad->print();
-    if (dad)
-        dad->print();
     for (parameter_declaration* pd : pl)
         pd->print();
 }
@@ -121,6 +119,7 @@ void function_declarator::print()
 
 void pointer::print()
 {
+    cout << "*";
     for (type_qualifier* tq : tql)
         tq->print();
 
@@ -141,6 +140,7 @@ void declaration::print()
     ds->print();
     if (d)
         d->print();
+    cout << ";";
 }
 
 void primary_expression::print()
