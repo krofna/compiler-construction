@@ -47,6 +47,7 @@ struct struct_or_union_specifier : type_specifier
 
     token sou;
     token id;
+    bool has_sds = false;
     vector<struct_declaration*> sds;
 };
 

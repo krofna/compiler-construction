@@ -1,6 +1,14 @@
 #include "parser.h"
 #include <iostream>
 
+static int depth = 0;
+
+static void indent()
+{
+    for (int i = 0; i < depth; ++i)
+        cout << "\t";
+}
+
 void type_qualifier::print()
 {
     cout << tok.str;
@@ -31,13 +39,23 @@ void struct_or_union_specifier::print()
     cout << sou.str;
     if (id.type != INVALID)
         cout << " " << id.str;
-    cout << "\n{\n";
-    for (struct_declaration* sd : sds)
+
+    if (has_sds)
     {
-        sd->print();
         cout << "\n";
+        indent();
+        cout << "{\n";
+        depth++;
+        for (struct_declaration* sd : sds)
+        {
+            indent();
+            sd->print();
+            cout << "\n";
+        }
+        depth--;
+        indent();
+        cout << "}";
     }
-    cout << "}";
 }
 
 void direct_abstract_declarator::print()
@@ -550,8 +568,9 @@ void if_statement::print()
 
 void switch_statement::print()
 {
-    cout << "switch";
+    cout << "switch (";
     expr->print();
+    cout << ") ";
     stat->print();
 }
 
@@ -618,11 +637,15 @@ void statement_item::print()
 void compound_statement::print()
 {
     cout << "{\n";
+    depth++;
     for (block_item* i : bi)
     {
+        indent();
         i->print();
         cout << '\n';
     }
+    depth--;
+    indent();
     cout << "}";
 }
 

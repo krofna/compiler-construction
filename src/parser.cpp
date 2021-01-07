@@ -609,6 +609,7 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
             ss->id = *tokit++;
             if (check("{"))
             {
+                ss->has_sds = true;
                 ss->sds = parse_struct_declaration_list();
                 accept("}");
             }
