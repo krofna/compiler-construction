@@ -37,7 +37,7 @@ void struct_or_union_specifier::print()
         sd->print();
         cout << "\n";
     }
-    cout << "}\n";
+    cout << "}";
 }
 
 void direct_abstract_declarator::print()
@@ -95,9 +95,11 @@ void parenthesized_declarator::print()
 void parameter_declaration::print()
 {
     ds->print();
-    cout << " ";
     if (decl)
+    {
+        cout << " ";
         decl->print();
+    }
     if (ad)
         ad->print();
 }
@@ -139,7 +141,10 @@ void declaration::print()
 {
     ds->print();
     if (d)
+    {
+        cout << " ";
         d->print();
+    }
     cout << ";";
 }
 
@@ -209,8 +214,7 @@ void postfix_decrement_expression::print()
 
 void unary_expression::print()
 {
-    if (pe)
-        pe->print();
+    pe->print();
 }
 
 void prefix_increment_expression::print()
@@ -295,29 +299,23 @@ void multiplicative_expression::print()
 
 void mul_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") * (";
+    cout << " * ";
     rhs->print();
-    cout << ")";
 }
 
 void div_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") / (";
+    cout << " / ";
     rhs->print();
-    cout << ")";
 }
 
 void mod_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") % (";
+    cout << " % ";
     rhs->print();
-    cout << ")";
 }
 
 void additive_expression::print()
@@ -327,20 +325,16 @@ void additive_expression::print()
 
 void add_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") + (";
+    cout << " + ";
     rhs->print();
-    cout << ")";
 }
 
 void sub_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") - (";
+    cout << " - ";
     rhs->print();
-    cout << ")";
 }
 
 void shift_expression::print()
@@ -350,20 +344,16 @@ void shift_expression::print()
 
 void rshift_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") >> (";
+    cout << " >> ";
     rhs->print();
-    cout << ")";
 }
 
 void lshift_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") << (";
+    cout << " << ";
     rhs->print();
-    cout << ")";
 }
 
 void relational_expression::print()
@@ -373,37 +363,30 @@ void relational_expression::print()
 
 void less_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") < (";
+    cout << " < ";
     rhs->print();
-    cout << ")";
 }
 
 void greater_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") > (";
+    cout << " > ";
     rhs->print();
-    cout << ")";}
+}
 
 void less_equal_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") <= (";
+    cout << " <= ";
     rhs->print();
-    cout << ")";
 }
 
 void greater_equal_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") >= (";
+    cout << " >= ";
     rhs->print();
-    cout << ")";
 }
 
 void equality_expression::print()
@@ -413,20 +396,16 @@ void equality_expression::print()
 
 void equal_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") == (";
+    cout << " == ";
     rhs->print();
-    cout << ")";
 }
 
 void not_equal_expression::print()
 {
-    cout << "(";
     lhs->print();
-    cout << ") != (";
+    cout << " != ";
     rhs->print();
-    cout << ")";
 }
 
 void and_expression::print()
@@ -532,7 +511,7 @@ void expression::print()
 
 void goto_label::print()
 {
-    cout << id.str << ":";
+    cout << id.str << ":\n";
     stat->print();
 }
 
@@ -560,7 +539,7 @@ void if_statement::print()
 {
     cout << "if (";
     expr->print();
-    cout << ")";
+    cout << ") ";
     stat->print();
     if (estat)
     {
@@ -644,7 +623,7 @@ void compound_statement::print()
         i->print();
         cout << '\n';
     }
-    cout << "}\n";
+    cout << "}";
 }
 
 void function_definition::print()
@@ -667,5 +646,8 @@ void external_declaration::print()
 void translation_unit::print()
 {
     for (external_declaration* ed : ed)
+    {
         ed->print();
+        cout << "\n\n";
+    }
 }
