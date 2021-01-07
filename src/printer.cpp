@@ -14,6 +14,7 @@ void builtin_type_specifier::print()
 void struct_declaration::print()
 {
     ts->print();
+    cout << " ";
     bool flg = false;
     for (declarator* d : ds)
     {
@@ -33,7 +34,6 @@ void struct_or_union_specifier::print()
     cout << "\n{\n";
     for (struct_declaration* sd : sds)
     {
-        cout << "\t";
         sd->print();
         cout << "\n";
     }
@@ -97,6 +97,7 @@ void parenthesized_declarator::print()
 void parameter_declaration::print()
 {
     ds->print();
+    cout << " ";
     if (decl)
         decl->print();
     if (ad)
@@ -106,8 +107,16 @@ void parameter_declaration::print()
 void function_declarator::print()
 {
     dd->print();
+    cout << "(";
+    bool flg = false;
     for (parameter_declaration* pd : pl)
+    {
+        if (flg)
+            cout << ", ";
+        flg = true;
         pd->print();
+    }
+    cout << ")";
 }
 
 void pointer::print()
@@ -551,7 +560,7 @@ void if_statement::print()
     stat->print();
     if (estat)
     {
-        cout << "else";
+        cout << "else ";
         estat->print();
     }
 }
@@ -625,14 +634,21 @@ void statement_item::print()
 
 void compound_statement::print()
 {
+    cout << "{\n";
     for (block_item* i : bi)
+    {
         i->print();
+        cout << '\n';
+    }
+    cout << "}\n";
 }
 
 void function_definition::print()
 {
     ds->print();
+    cout << " ";
     dec->print();
+    cout << "\n";
     cs->print();
 }
 

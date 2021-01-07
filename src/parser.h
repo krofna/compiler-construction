@@ -105,7 +105,7 @@ struct declarator;
 
 struct direct_declarator
 {
-    void print();
+    virtual void print();
 
     token tok;
 };
