@@ -157,11 +157,12 @@ struct declaration
     ~declaration()
     {
         delete ds;
-        delete d;
+        for (declarator* d : d)
+            delete d;
     }
 
     declaration_specifiers* ds;
-    declarator* d = nullptr;
+    vector<declarator*> d;
 };
 
 struct expression;

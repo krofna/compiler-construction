@@ -535,7 +535,15 @@ declaration* parser::parse_declaration()
         declaration* decl = new declaration;
         decl->ds = ds;
         if (declarator* d = parse_declarator())
-            decl->d = d;
+        {
+            decl->d.push_back(d);
+            while (check(","))
+            {
+                decl->d.push_back(parse_declarator());
+                if (!decl->d.back())
+                    reject();
+            }
+        }
 
         if (!check(";"))
         {

@@ -1,26 +1,33 @@
 #include "parser.h"
 #include <iostream>
 
-static int depth = 0;
-static vector<char> buffer;
 
 struct printer
 {
+    int depth = 0;
+    vector<char> buffer;
+
     ~printer()
     {
         flush(cout);
+    }
+
+    void indent()
+    {
+        for (int i = 0; i < depth; ++i)
+            buffer.push_back('\t');
+    }
+
+    void unindent()
+    {
+        for (int i = 0; i < depth; ++i)
+            buffer.pop_back();
     }
 
     printer& operator << (const string& x)
     {
         for (char c : x)
             buffer.push_back(c);
-        return *this;
-    }
-
-    printer& operator << (char x)
-    {
-        buffer.push_back(x);
         return *this;
     }
 
@@ -32,18 +39,6 @@ struct printer
         buffer = vector<char>();
     }
 } pout;
-
-static void indent()
-{
-    for (int i = 0; i < depth; ++i)
-        pout << "\t";
-}
-
-static void unindent()
-{
-    for (int i = 0; i < depth; ++i)
-        buffer.pop_back();
-}
 
 void type_qualifier::print()
 {
@@ -79,17 +74,17 @@ void struct_or_union_specifier::print()
     if (has_sds)
     {
         pout << "\n";
-        indent();
+        pout.indent();
         pout << "{\n";
-        depth++;
+        pout.depth++;
         for (struct_declaration* sd : sds)
         {
-            indent();
+            pout.indent();
             sd->print();
             pout << "\n";
         }
-        depth--;
-        indent();
+        pout.depth--;
+        pout.indent();
         pout << "}";
     }
 }
@@ -194,9 +189,14 @@ void declarator::print()
 void declaration::print()
 {
     ds->print();
-    if (d)
+    bool flg = false;
+    for (declarator* d : d)
     {
-        pout << " ";
+        if (flg)
+            pout << ", ";
+        else
+            pout << " ";
+        flg = true;
         d->print();
     }
     pout << ";";
@@ -565,9 +565,9 @@ void expression::print()
 
 void goto_label::print()
 {
-    unindent();
+    pout.unindent();
     pout << id.str << ":\n";
-    indent();
+    pout.indent();
     stat->print();
 }
 
@@ -597,15 +597,15 @@ static bool selection_helper(statement* stat)
     if (no_block)
     {
         pout << "\n";
-        depth++;
-        indent();
+        pout.depth++;
+        pout.indent();
     }
     else
         pout << " ";
 
     stat->print();
     if (no_block)
-        depth--;
+        pout.depth--;
 
     return no_block;
 }
@@ -621,7 +621,7 @@ void if_statement::print()
         if (no_block)
         {
             pout << "\n";
-            indent();
+            pout.indent();
         }
 
         if (!no_block)
@@ -703,15 +703,15 @@ void statement_item::print()
 void compound_statement::print()
 {
     pout << "{\n";
-    depth++;
+    pout.depth++;
     for (block_item* i : bi)
     {
-        indent();
+        pout.indent();
         i->print();
-        pout << '\n';
+        pout << "\n";
     }
-    depth--;
-    indent();
+    pout.depth--;
+    pout.indent();
     pout << "}";
 }
 

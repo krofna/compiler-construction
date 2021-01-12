@@ -34,7 +34,9 @@ int task_cde(const char* filename, bool print)
     }
     catch (const parser::error& e)
     {
-        cerr << e.tokit->row << " " << e.tokit->col << " " << e.what() << endl;
+        cerr << filename << ':' << e.tokit->row << ':'
+             << e.tokit->col << ": " << e.tokit->type << ' '
+             << e.tokit->str << '\n';
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
