@@ -1052,10 +1052,22 @@ jump_statement* parser::parse_jump_statement()
 
 function_definition* parser::parse_function_definition()
 {
+    declaration_specifiers* ds = parse_declaration_specifiers();
+    if (!ds)
+        return nullptr;
+
+    declarator* dec = parse_declarator();
+    if (!dec)
+        return nullptr;
+
+    compound_statement* cs = parse_compound_statement();
+    if (!cs)
+        return nullptr;
+
     function_definition* fd = new function_definition;
-    fd->ds = parse_declaration_specifiers();
-    fd->dec = parse_declarator();
-    fd->cs = parse_compound_statement();
+    fd->ds = ds;
+    fd->dec = dec;
+    fd->cs = cs;
     return fd;
 }
 
