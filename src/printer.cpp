@@ -63,7 +63,7 @@ void struct_declaration::print()
     for (declarator* d : ds)
     {
         if (flg)
-            pout << ",";
+            pout << ", ";
         flg = true;
         d->print();
     }
@@ -557,7 +557,7 @@ void expression::print()
     for (assignment_expression* ae : ae)
     {
         if (flg)
-            pout << ",";
+            pout << ", ";
         flg = true;
         ae->print();
     }
