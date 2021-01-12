@@ -1054,15 +1054,15 @@ function_definition* parser::parse_function_definition()
 {
     declaration_specifiers* ds = parse_declaration_specifiers();
     if (!ds)
-        return nullptr;
+        reject();
 
     declarator* dec = parse_declarator();
     if (!dec)
-        return nullptr;
+        reject();
 
     compound_statement* cs = parse_compound_statement();
     if (!cs)
-        return nullptr;
+        reject();
 
     function_definition* fd = new function_definition;
     fd->ds = ds;
