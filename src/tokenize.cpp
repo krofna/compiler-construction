@@ -40,7 +40,7 @@ vector<string> keywords =
     "_Noreturn", "_Static_assert", "_Thread_local"
 };
 
-const string escapable_chars = "abfnrtv\\'\"?01234567";
+const string escapable_chars = "'abfnrtv\\\"?";
 
 size_t match_str(const string& s, char* p)
 {
@@ -119,7 +119,11 @@ int read_char(char* p)
 
     int match = 1;
     ++p;
-
+    
+    if (*p == '\'')
+        return 0;
+    ++match;
+    
     if (*p == '\\')
     {
         ++match;
@@ -127,13 +131,11 @@ int read_char(char* p)
         if (find(escapable_chars.begin(), escapable_chars.end(), *p) == escapable_chars.end()) return 0;
     }
 
-    ++match;
-    if (*p == '\'')
-        return 0;
-
+    if(!*p) return 0;
+    
     ++p;
     ++match;
-
+    
     if (*p == '\'')
         return match;
 
