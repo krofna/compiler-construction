@@ -695,7 +695,7 @@ declarator* parser::parse_declarator()
     {
         declarator* decl = new declarator;
         decl->p = p;
-        decl->dd = parse_direct_declarator();
+        decl->dd = accept(parse_direct_declarator());
         return decl;
     }
     if (direct_declarator* dd = parse_direct_declarator())
@@ -718,7 +718,7 @@ direct_declarator* parser::parse_nof_direct_declarator()
     if (check("("))
     {
         parenthesized_declarator* pd = new parenthesized_declarator;
-        pd->decl = parse_declarator();
+        pd->decl = accept(parse_declarator());
         accepts(")");
         return pd;
     }
