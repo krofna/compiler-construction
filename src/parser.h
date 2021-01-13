@@ -1,5 +1,5 @@
 #pragma once
-#include "tokenize.h"
+#include "error.h"
 
 using token_iter = vector<token>::iterator;
 
@@ -573,7 +573,7 @@ struct expression_statement : statement
 {
     void print();
 
-    expression* expr;
+    expression* expr = nullptr;
 };
 
 struct selection_statement : statement
@@ -740,20 +740,6 @@ struct translation_unit
 class parser
 {
 public:
-    struct error : exception
-    {
-        token_iter tokit;
-
-        error(token_iter tokit) : tokit(tokit)
-        {
-        }
-
-        const char* what() const noexcept
-        {
-            return stringify(tokit->type).c_str();
-        }
-    };
-
     parser(vector<token>& tokens) : tokens(tokens), tokit(tokens.begin())
     {
     }
@@ -782,10 +768,17 @@ private:
         return false;
     }
 
-    void accept(const string& what)
+    void accepts(const string& what)
     {
         if (!check(what))
             reject();
+    }
+
+    template <class T> T* accept(T* ptr)
+    {
+        if (!ptr)
+            reject();
+        return ptr;
     }
 
     void accept_any(const vector<string>& what)
@@ -798,7 +791,7 @@ private:
 
     void reject()
     {
-        throw error(tokit);
+        error::reject(*tokit);
     }
 
     expression* parse_expression();

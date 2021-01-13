@@ -1,7 +1,6 @@
 #include "parser.h"
 #include <iostream>
 
-
 struct printer
 {
     int depth = 0;
@@ -587,7 +586,8 @@ void default_label::print()
 
 void expression_statement::print()
 {
-    expr->print();
+    if (expr)
+        expr->print();
     pout << ";";
 }
 

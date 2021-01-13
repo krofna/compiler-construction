@@ -20,6 +20,7 @@ int task_b(const char* filename)
 
 int task_cde(const char* filename, bool print)
 {
+    // todo: print tokenizer error
     vector<token> tokens = tokenize_file(filename);
     for (auto tok : tokens)
         if (tok.type == INVALID)
@@ -32,11 +33,9 @@ int task_cde(const char* filename, bool print)
             tu->print();
         delete tu;
     }
-    catch (const parser::error& e)
+    catch (const error& e)
     {
-        cerr << filename << ':' << e.tokit->row << ':'
-             << e.tokit->col << ": " << e.tokit->type << ' '
-             << e.tokit->str << '\n';
+        cerr << e.what() << '\n';
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
