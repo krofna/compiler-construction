@@ -35,7 +35,7 @@ int task_cde(const char* filename, bool print)
     }
     catch (const error& e)
     {
-        cerr << e.what() << '\n';
+        cerr << filename << ":" << e.what() << '\n';
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;

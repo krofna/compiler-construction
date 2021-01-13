@@ -8,8 +8,8 @@ struct error : std::runtime_error
         std::runtime_error(to_string(tok.row)
                            + ":"
                            + to_string(tok.col)
-                           + ": "
-                           + to_string(tok.type)
+                           + ": error: "
+                           + stringify(tok.type)
                            + ' '
                            + tok.str)
     {
