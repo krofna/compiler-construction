@@ -2,22 +2,27 @@
 
 primary_expression* parser::parse_primary_expression()
 {
+    if (tokit == tokens.end())
+        return nullptr;
+
     if (tokit->type == IDENTIFIER)
     {
         primary_expression* pe = new primary_expression;
-        pe->tok = *tokit++;
+        // pe->var = accept(find_var((pe->tok = *tokit).str));
+        // tokit++;
+        pe->tok = parse_token();
         return pe;
     }
     if (tokit->type == CONSTANT)
     {
         primary_expression* pe = new primary_expression;
-        pe->tok = *tokit++;
+        pe->tok = parse_token();
         return pe;
     }
     if (tokit->type == STRING_LITERAL)
     {
         primary_expression* pe = new primary_expression;
-        pe->tok = *tokit++;
+        pe->tok = parse_token();
         return pe;
     }
     if (check("("))
@@ -53,35 +58,28 @@ postfix_expression* parser::parse_postfix_expression()
         {
             call_expression* ce = new call_expression;
             ce->pfe = e;
-            do
-                ce->args.push_back(parse_assignment_expression());
-            while (check(","));
+            if (assignment_expression* ae = parse_assignment_expression())
+            {
+                ce->args.push_back(ae);
+                while (check(","))
+                    ce->args.push_back(accept(parse_assignment_expression()));
+            }
             accepts(")");
             e = ce;
         }
         else if (check("."))
         {
-            if (tokit->type == IDENTIFIER)
-            {
-                dot_expression* de = new dot_expression;
-                de->pfe = e;
-                de->id = *tokit++;
-                e = de;
-            }
-            else
-                reject();
+            dot_expression* de = new dot_expression;
+            de->pfe = e;
+            de->id = parse_identifier();
+            e = de;
         }
         else if (check("->"))
         {
-            if (tokit->type == IDENTIFIER)
-            {
-                arrow_expression* ae = new arrow_expression;
-                ae->pfe = e;
-                ae->id = *tokit++;
-                e = ae;
-            }
-            else
-                reject();
+            arrow_expression* ae = new arrow_expression;
+            ae->pfe = e;
+            ae->id = parse_identifier();
+            e = ae;
         }
         else if (check("++"))
         {
@@ -499,7 +497,7 @@ assignment_expression* parser::parse_assignment_expression()
         ae->lhs = ce;
         if (check_any({"=", "*=", "/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|="}))
         {
-            ae->op = *tokit++;
+            ae->op = parse_token();
             ae->rhs = accept(parse_assignment_expression());
         }
         return ae;
@@ -525,7 +523,7 @@ expression* parser::parse_expression()
         expression* expr = new expression;
         expr->ae.push_back(ae);
         while (check(","))
-            expr->ae.push_back(parse_assignment_expression());
+            expr->ae.push_back(accept(parse_assignment_expression()));
         return expr;
     }
     return nullptr;
@@ -551,6 +549,11 @@ declaration* parser::parse_declaration()
             delete decl;
             return nullptr;
         }
+
+        // todo: check what is being declared
+        // for (declarator* d : decl->d)
+        //     (*scopes.back())[d->dd->tok.str] = new object;
+
         return decl;
     }
     return nullptr;
@@ -575,7 +578,7 @@ storage_class_specifier* parser::parse_storage_class_specifier()
     if (check_any(specifiers))
     {
         storage_class_specifier* ss = new storage_class_specifier;
-        ss->tok = *tokit++;
+        ss->tok = parse_token();
         return ss;
     }
     return nullptr;
@@ -590,7 +593,7 @@ type_specifier* parser::parse_type_specifier()
     if (check_any(builtin_types))
     {
         builtin_type_specifier* ts = new builtin_type_specifier;
-        ts->tok = *tokit++;
+        ts->tok = parse_token();
         return ts;
     }
     if (struct_or_union_specifier* ss = parse_struct_or_union_specifier())
@@ -603,7 +606,7 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
     if (check_any({"struct", "union"}))
     {
         struct_or_union_specifier* ss = new struct_or_union_specifier;
-        ss->sou = *tokit++;
+        ss->sou = parse_token();
         if (check("{"))
         {
             ss->sds = parse_struct_declaration_list();
@@ -611,10 +614,7 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
         }
         else
         {
-            if (tokit->type != IDENTIFIER)
-                reject();
-
-            ss->id = *tokit++;
+            ss->id = parse_identifier();
             if (check("{"))
             {
                 ss->has_sds = true;
@@ -669,7 +669,7 @@ type_qualifier* parser::parse_type_qualifier()
     if (check_any(qualifiers))
     {
         type_qualifier* tq = new type_qualifier;
-        tq->tok = *tokit++;
+        tq->tok = parse_token();
         return tq;
     }
     return nullptr;
@@ -683,7 +683,7 @@ function_specifier* parser::parse_function_specifier()
     if (check_any(specifiers))
     {
         function_specifier* fs = new function_specifier;
-        fs->tok = *tokit++;
+        fs->tok = parse_token();
         return fs;
     }
     return nullptr;
@@ -709,10 +709,10 @@ declarator* parser::parse_declarator()
 
 direct_declarator* parser::parse_nof_direct_declarator()
 {
-    if (tokit->type == IDENTIFIER)
+    if (check_identifier())
     {
         direct_declarator* dd = new direct_declarator;
-        dd->tok = *tokit++;
+        dd->tok = parse_identifier();
         return dd;
     }
     if (check("("))
@@ -872,9 +872,9 @@ statement* parser::parse_statement()
 
 labeled_statement* parser::parse_labeled_statement()
 {
-    if (tokit->type == IDENTIFIER)
+    if (check_identifier())
     {
-        token id = *tokit++;
+        token id = parse_identifier();
         if (!check(":"))
         {
             tokit--;
@@ -908,8 +908,10 @@ compound_statement* parser::parse_compound_statement()
     if (check("{"))
     {
         compound_statement* cs = new compound_statement;
+        scopes.push_back(cs->vars = new scope);
         while (!check("}"))
             cs->bi.push_back(accept(parse_block_item()));
+        scopes.pop_back();
         return cs;
     }
     return nullptr;
@@ -1014,7 +1016,7 @@ jump_statement* parser::parse_jump_statement()
     if (check("goto"))
     {
         goto_statement* gs = new goto_statement;
-        gs->id = *tokit++;
+        gs->id = parse_token();
         accepts(";");
         return gs;
     }
@@ -1069,7 +1071,9 @@ external_declaration* parser::parse_external_declaration()
 translation_unit* parser::parse_translation_unit()
 {
     translation_unit* root = new translation_unit;
+    scopes.push_back(root->objs = new scope);
     while (tokit != tokens.end())
         root->ed.push_back(accept(parse_external_declaration()));
+    scopes.pop_back();
     return root;
 }

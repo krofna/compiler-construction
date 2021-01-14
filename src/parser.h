@@ -1,11 +1,18 @@
 #pragma once
 #include "error.h"
+#include <map>
 
 using token_iter = vector<token>::iterator;
 
 struct node
 {
 };
+
+struct object
+{
+};
+
+using scope = map<string, object*>;
 
 struct specifier_qualifier
 {
@@ -171,6 +178,7 @@ struct primary_expression
 {
     virtual void print();
 
+    object* var = nullptr;
     token tok;
 };
 
@@ -694,11 +702,15 @@ struct compound_statement : statement
 {
     ~compound_statement()
     {
+        for (auto& [string, object] : *vars)
+            delete object;
+        delete vars;
         for (block_item* i : bi)
             delete i;
     }
     void print();
 
+    scope* vars;
     vector<block_item*> bi;
 };
 
@@ -729,11 +741,15 @@ struct translation_unit
 {
     ~translation_unit()
     {
+        for (auto& [string, object] : *objs)
+            delete object;
+        delete objs;
         for (external_declaration* d : ed)
             delete d;
     }
     void print();
 
+    scope* objs;
     vector<external_declaration*> ed;
 };
 
@@ -752,6 +768,8 @@ public:
 private:
     vector<token>& tokens;
     token_iter tokit;
+
+    vector<scope*> scopes;
 
     bool check(const string& what)
     {
@@ -791,7 +809,42 @@ private:
 
     void reject()
     {
+        if (tokit == tokens.end())
+            --tokit;
         error::reject(*tokit);
+    }
+
+    token parse_token()
+    {
+        if (tokit == tokens.end())
+            reject();
+        return *tokit++;
+    }
+
+    bool check_identifier()
+    {
+        if (tokit == tokens.end() || tokit->type != IDENTIFIER)
+            return false;
+        return true;
+    }
+
+    token parse_identifier()
+    {
+        if (!check_identifier())
+            reject();
+        return *tokit++;
+    }
+
+    object* find_var(const string& id)
+    {
+        for (auto i = scopes.rbegin(); i != scopes.rend(); ++i)
+        {
+            scope* s = *i;
+            auto it = s->find(id);
+            if (it != s->end())
+                return it->second;
+        }
+        return nullptr;
     }
 
     expression* parse_expression();
