@@ -14,8 +14,6 @@ enum token_type : int
     PUNCTUATOR
 };
 
-string fix_digraph(const string& str);
-
 struct token
 {
     token() : type(INVALID), col(0), row(0)
@@ -25,8 +23,6 @@ struct token
     token(token_type type, char* p, int sz, int col, int row)
         : type(type), str(p, sz), col(col), row(row)
     {
-        if (type == PUNCTUATOR)
-            str = fix_digraph(str);
     }
 
     token_type type;

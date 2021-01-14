@@ -5,19 +5,6 @@
 #include "tokenize.h"
 using namespace std;
 
-string fix_digraph(const string& str)
-{
-    static const map<string, string> digraphs =
-    {
-        {"<:", "["}, {":>", "]"}, {"<%", "{"},
-        {"%>", "}"}, {"%:", "#"}, {"%:%:", "##"}
-    };
-    auto it = digraphs.find(str);
-    if (it != digraphs.end())
-        return it->second;
-    return str;
-}
-
 static const string token_names[] =
 {
     "error:", "keyword", "identifier",

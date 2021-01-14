@@ -591,9 +591,11 @@ void expression_statement::print()
     pout << ";";
 }
 
-static bool selection_helper(statement* stat)
+static bool selection_helper(statement* stat, bool el = false)
 {
     bool no_block = dynamic_cast<compound_statement*>(stat) == nullptr;
+    if (el) no_block = no_block && dynamic_cast<if_statement*>(stat) == nullptr;
+
     if (no_block)
     {
         pout << "\n";
@@ -627,8 +629,8 @@ void if_statement::print()
         if (!no_block)
             pout << " ";
 
-        pout << "else ";
-        estat->print();
+        pout << "else";
+        selection_helper(estat, true);
     }
 }
 

@@ -771,9 +771,22 @@ private:
 
     vector<scope*> scopes;
 
+    string get_digraph(const string& str)
+    {
+        static const map<string, string> digraphs =
+            {
+                {"[", "<:"}, {"]", ":>"}, {"{", "<%"},
+                {"}", "%>"}, {"#", "%:"}, {"##", "%:%:"}
+            };
+        auto it = digraphs.find(str);
+        if (it != digraphs.end())
+            return it->second;
+        return str;
+    }
+
     bool check(const string& what)
     {
-        if (tokit == tokens.end() || tokit->str != what)
+        if (tokit == tokens.end() || (tokit->str != what && tokit->str != get_digraph(what)))
             return false;
         return ++tokit, true;
     }
