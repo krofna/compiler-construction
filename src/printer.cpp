@@ -99,9 +99,14 @@ void direct_abstract_declarator::print()
 void abstract_declarator::print()
 {
     if (p)
+    {
+        pout << "(";
         p->print();
+    }
     if (dad)
         dad->print();
+    if (p)
+        pout << ")";
 }
 
 void type_name::print()
@@ -135,9 +140,7 @@ void direct_declarator::print()
 
 void parenthesized_declarator::print()
 {
-    pout << "(";
     decl->print();
-    pout << ")";
 }
 
 void parameter_declaration::print()
@@ -154,6 +157,7 @@ void parameter_declaration::print()
 
 void function_declarator::print()
 {
+    pout << "(";
     dd->print();
     pout << "(";
     bool flg = false;
@@ -164,6 +168,7 @@ void function_declarator::print()
         flg = true;
         pd->print();
     }
+    pout << ")";
     pout << ")";
 }
 
@@ -180,9 +185,14 @@ void pointer::print()
 void declarator::print()
 {
     if (p)
+    {
+        pout << "(";
         p->print();
+    }
 
     dd->print();
+    if (p)
+        pout << ")";
 }
 
 void declaration::print()
@@ -208,9 +218,7 @@ void primary_expression::print()
 
 void parenthesized_expression::print()
 {
-    pout << "(";
     expr->print();
-    pout << ")";
 }
 
 void postfix_expression::print()
@@ -220,14 +228,17 @@ void postfix_expression::print()
 
 void subscript_expression::print()
 {
+    pout << "(";
     pfe->print();
     pout << "[";
     expr->print();
     pout << "]";
+    pout << ")";
 }
 
 void call_expression::print()
 {
+    pout << "(";
     pfe->print();
     pout << "(";
     bool flg = false;
@@ -239,30 +250,39 @@ void call_expression::print()
         ae->print();
     }
     pout << ")";
+    pout << ")";
 }
 
 void dot_expression::print()
 {
+    pout << "(";
     pfe->print();
     pout << "." << id.str;
+    pout << ")";
 }
 
 void arrow_expression::print()
 {
+    pout << "(";
     pfe->print();
     pout << "->" << id.str;
+    pout << ")";
 }
 
 void postfix_increment_expression::print()
 {
+    pout << "(";
     pfe->print();
     pout << "++";
+    pout << ")";
 }
 
 void postfix_decrement_expression::print()
 {
+    pout << "(";
     pfe->print();
     pout << "--";
+    pout << ")";
 }
 
 void unary_expression::print()
@@ -272,62 +292,82 @@ void unary_expression::print()
 
 void prefix_increment_expression::print()
 {
+    pout << "(";
     pout << "++";
     ue->print();
+    pout << ")";
 }
 
 void prefix_decrement_expression::print()
 {
+    pout << "(";
     pout << "--";
     ue->print();
+    pout << ")";
 }
 
 void unary_and_expression::print()
 {
+    pout << "(";
     pout << "&";
     ce->print();
+    pout << ")";
 }
 
 void unary_star_expression::print()
 {
+    pout << "(";
     pout << "*";
     ce->print();
+    pout << ")";
 }
 
 void unary_plus_expression::print()
 {
+    pout << "(";
     pout << "+";
     ce->print();
+    pout << ")";
 }
 
 void unary_minus_expression::print()
 {
+    pout << "(";
     pout << "-";
     ce->print();
+    pout << ")";
 }
 
 void unary_tilde_expression::print()
 {
+    pout << "(";
     pout << "~";
     ce->print();
+    pout << ")";
 }
 
 void unary_not_expression::print()
 {
+    pout << "(";
     pout << "!";
     ce->print();
+    pout << ")";
 }
 
 void sizeof_expression::print()
 {
+    pout << "(";
     pout << "sizeof ";
     ue->print();
+    pout << ")";
 }
 
 void sizeof_type_expression::print()
 {
+    pout << "(";
     pout << "sizeof(";
     tn->print();
+    pout << ")";
     pout << ")";
 }
 
@@ -339,9 +379,11 @@ void cast_expression::print()
     if (tn)
     {
         pout << "(";
+        pout << "(";
         tn->print();
         pout << ")";
         ce->print();
+        pout << ")";
     }
 }
 
@@ -352,23 +394,29 @@ void multiplicative_expression::print()
 
 void mul_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " * ";
     rhs->print();
+    pout << ")";
 }
 
 void div_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " / ";
     rhs->print();
+    pout << ")";
 }
 
 void mod_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " % ";
     rhs->print();
+    pout << ")";
 }
 
 void additive_expression::print()
@@ -378,16 +426,20 @@ void additive_expression::print()
 
 void add_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " + ";
     rhs->print();
+    pout << ")";
 }
 
 void sub_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " - ";
     rhs->print();
+    pout << ")";
 }
 
 void shift_expression::print()
@@ -397,16 +449,20 @@ void shift_expression::print()
 
 void rshift_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " >> ";
     rhs->print();
+    pout << ")";
 }
 
 void lshift_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " << ";
     rhs->print();
+    pout << ")";
 }
 
 void relational_expression::print()
@@ -416,30 +472,38 @@ void relational_expression::print()
 
 void less_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " < ";
     rhs->print();
+    pout << ")";
 }
 
 void greater_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " > ";
     rhs->print();
+    pout << ")";
 }
 
 void less_equal_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " <= ";
     rhs->print();
+    pout << ")";
 }
 
 void greater_equal_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " >= ";
     rhs->print();
+    pout << ")";
 }
 
 void equality_expression::print()
@@ -449,16 +513,20 @@ void equality_expression::print()
 
 void equal_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " == ";
     rhs->print();
+    pout << ")";
 }
 
 void not_equal_expression::print()
 {
+    pout << "(";
     lhs->print();
     pout << " != ";
     rhs->print();
+    pout << ")";
 }
 
 void and_expression::print()
@@ -479,9 +547,11 @@ void exclusive_or_expression::print()
         ae->print();
     else
     {
+        pout << "(";
         lhs->print();
         pout << " ^ ";
         rhs->print();
+        pout << ")";
     }
 }
 
@@ -491,9 +561,11 @@ void inclusive_or_expression::print()
         xe->print();
     else
     {
+        pout << "(";
         lhs->print();
         pout << " | ";
         rhs->print();
+        pout << ")";
     }
 }
 
@@ -503,9 +575,11 @@ void logical_and_expression::print()
         oe->print();
     else
     {
+        pout << "(";
         lhs->print();
         pout << " && ";
         rhs->print();
+        pout << ")";
     }
 }
 
@@ -515,9 +589,11 @@ void logical_or_expression::print()
         ae->print();
     else
     {
+        pout << "(";
         lhs->print();
         pout << " || ";
         rhs->print();
+        pout << ")";
     }
 }
 
@@ -527,21 +603,27 @@ void conditional_expression::print()
         oe->print();
     else
     {
+        pout << "(";
         expr1->print();
         pout << " ? ";
         expr2->print();
         pout << " : ";
         expr3->print();
+        pout << ")";
     }
 }
 
 void assignment_expression::print()
 {
+    if (rhs)
+        pout << "(";
+
     lhs->print();
     if (rhs)
     {
         pout << " " << op.str << " ";
         rhs->print();
+        pout << ")";
     }
 }
 
