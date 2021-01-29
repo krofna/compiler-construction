@@ -770,7 +770,8 @@ void break_statement::print()
 void return_statement::print()
 {
     pout << "return ";
-    expr->print();
+    if(expr)
+        expr->print();
     pout << ";";
 }
 
