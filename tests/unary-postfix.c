@@ -1,6 +1,7 @@
 void f(void) {
     int x;
-    ()++; // <- segfault
+    // fixed segfault
+    //()++; // <- segfault
     // everything else seems to be ok
     x++;
     x--;

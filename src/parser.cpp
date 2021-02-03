@@ -28,7 +28,8 @@ primary_expression* parser::parse_primary_expression()
     if (check("("))
     {
         parenthesized_expression* pe = new parenthesized_expression;
-        pe->expr = parse_expression();
+        if((pe->expr = parse_expression()) == NULL)
+            reject();
         accepts(")");
         return pe;
     }
