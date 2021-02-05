@@ -1,8 +1,8 @@
 void f(void) {
     int x;
-    // fixed segfault
-    //()++; // <- segfault
-    // everything else seems to be ok
+    f(x)++;
+    x++++++++;
+    x--------;
     x++;
     x--;
     x+++++0;
@@ -28,6 +28,7 @@ void f(void) {
     x ++ << x ++;
     x ++ + x ++;
     sizeof x ++;
+    sizeof(int);
     - x ++;
     - x --;
     + x ++;

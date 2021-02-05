@@ -1,1 +1,6 @@
-; // not a problem currently
+struct {
+    int x;
+    int y;
+    int z;
+}
+    x {}
