@@ -656,13 +656,13 @@ void case_label::print()
 {
     pout << "case ";
     ce->print();
-    pout << ":";
+    pout << ":\n";
     stat->print();
 }
 
 void default_label::print()
 {
-    pout << "default:";
+    pout << "default:\n";
     stat->print();
 }
 
