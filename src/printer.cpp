@@ -654,15 +654,21 @@ void goto_label::print()
 
 void case_label::print()
 {
+    if(pout.depth > 0)
+        pout.buffer.pop_back();
     pout << "case ";
     ce->print();
     pout << ":\n";
+    pout.indent();
     stat->print();
 }
 
 void default_label::print()
 {
+    if(pout.depth > 0)
+        pout.buffer.pop_back();
     pout << "default:\n";
+    pout.indent();
     stat->print();
 }
 
