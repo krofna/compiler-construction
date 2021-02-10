@@ -28,8 +28,7 @@ primary_expression* parser::parse_primary_expression()
     if (check("("))
     {
         parenthesized_expression* pe = new parenthesized_expression;
-        if((pe->expr = parse_expression()) == NULL)
-            reject();
+        pe->expr = accept(parse_expression());
         accepts(")");
         return pe;
     }
@@ -610,6 +609,7 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
         ss->sou = parse_token();
         if (check("{"))
         {
+            ss->has_sds = true;
             ss->sds = parse_struct_declaration_list();
             accepts("}");
         }
@@ -692,11 +692,18 @@ function_specifier* parser::parse_function_specifier()
 
 declarator* parser::parse_declarator()
 {
+    token_iter old = tokit;
     if (pointer* p = parse_pointer())
     {
         declarator* decl = new declarator;
         decl->p = p;
-        decl->dd = accept(parse_direct_declarator());
+        decl->dd = parse_direct_declarator();
+        if (!decl->dd)
+        {
+            tokit = old;
+            delete decl;
+            return nullptr;
+        }
         return decl;
     }
     if (direct_declarator* dd = parse_direct_declarator())

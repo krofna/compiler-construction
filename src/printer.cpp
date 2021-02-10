@@ -52,7 +52,8 @@ void builtin_type_specifier::print()
 void struct_declaration::print()
 {
     ts->print();
-    pout << " ";
+    if (!ds.empty())
+        pout << " ";
     bool flg = false;
     for (declarator* d : ds)
     {
@@ -635,6 +636,9 @@ void constant_expression::print()
 void expression::print()
 {
     bool flg = false;
+    if (ae.size() > 1)
+        pout << "(";
+
     for (assignment_expression* ae : ae)
     {
         if (flg)
@@ -642,6 +646,8 @@ void expression::print()
         flg = true;
         ae->print();
     }
+    if (ae.size() > 1)
+        pout << ")";
 }
 
 void goto_label::print()
@@ -654,7 +660,7 @@ void goto_label::print()
 
 void case_label::print()
 {
-    if(pout.depth > 0)
+    if (pout.depth > 0)
         pout.buffer.pop_back();
     pout << "case ";
     ce->print();
@@ -665,7 +671,7 @@ void case_label::print()
 
 void default_label::print()
 {
-    if(pout.depth > 0)
+    if (pout.depth > 0)
         pout.buffer.pop_back();
     pout << "default:\n";
     pout.indent();
@@ -776,7 +782,7 @@ void break_statement::print()
 void return_statement::print()
 {
     pout << "return ";
-    if(expr)
+    if (expr)
         expr->print();
     pout << ";";
 }
