@@ -1,5 +1,9 @@
 #include "parser.h"
 
+#include <iostream>
+//#define dbg(x) cerr << #x << " = " << x << endl
+#define dbg(x)
+
 primary_expression* parser::parse_primary_expression()
 {
     if (tokit == tokens.end())
@@ -8,9 +12,8 @@ primary_expression* parser::parse_primary_expression()
     if (tokit->type == IDENTIFIER)
     {
         primary_expression* pe = new primary_expression;
-        // pe->var = accept(find_var((pe->tok = *tokit).str));
-        // tokit++;
-        pe->tok = parse_token();
+        pe->var = accept(find_var((pe->tok = *tokit).str));
+        tokit++;
         return pe;
     }
     if (tokit->type == CONSTANT)
@@ -550,9 +553,24 @@ declaration* parser::parse_declaration()
             return nullptr;
         }
 
-        // todo: check what is being declared
-        // for (declarator* d : decl->d)
-        //     (*scopes.back())[d->dd->tok.str] = new object;
+        for (declarator* d : decl->d)
+        {
+            auto& table = scopes.back()->vars;
+            string identifier = d->get_identifier();
+
+            if (d->dd->is_identifier() || d->dd->is_definition())
+            {
+                if (table.find(identifier) != table.end())
+                {
+                    dbg("redefinicija");
+                    reject();
+                }
+                dbg("varijabla");
+                table[identifier] = new variable_object;
+            }
+            else
+                dbg("deklaracija");
+        }
 
         return decl;
     }
@@ -865,7 +883,7 @@ statement* parser::parse_statement()
 {
     if (labeled_statement* ls = parse_labeled_statement())
         return ls;
-    if (compound_statement* cs = parse_compound_statement())
+    if (compound_statement* cs = parse_compound_statement(true))
         return cs;
     if (expression_statement* es = parse_expression_statement())
         return es;
@@ -891,7 +909,11 @@ labeled_statement* parser::parse_labeled_statement()
         goto_label* gl = new goto_label;
         gl->id = id;
         gl->stat = accept(parse_statement());
-        return gl;
+        auto it = labels.find(id.str);
+        if (it != labels.end())
+            reject();
+
+        return labels[id.str] = gl;
     }
     if (check("case"))
     {
@@ -911,15 +933,15 @@ labeled_statement* parser::parse_labeled_statement()
     return nullptr;
 }
 
-compound_statement* parser::parse_compound_statement()
+compound_statement* parser::parse_compound_statement(bool open_scope)
 {
     if (check("{"))
     {
         compound_statement* cs = new compound_statement;
-        scopes.push_back(cs->vars = new scope);
+        if (open_scope) scopes.push_back(cs->sc = new scope);
         while (!check("}"))
             cs->bi.push_back(accept(parse_block_item()));
-        scopes.pop_back();
+        if (open_scope) scopes.pop_back();
         return cs;
     }
     return nullptr;
@@ -1024,8 +1046,9 @@ jump_statement* parser::parse_jump_statement()
     if (check("goto"))
     {
         goto_statement* gs = new goto_statement;
-        gs->id = parse_token();
+        gs->id = parse_identifier();
         accepts(";");
+        gotos.push_back(gs);
         return gs;
     }
     if (check("continue"))
@@ -1055,7 +1078,50 @@ function_definition* parser::parse_function_definition()
     function_definition* fd = new function_definition;
     fd->ds = accept(parse_declaration_specifiers());
     fd->dec = accept(parse_declarator());
-    fd->cs = accept(parse_compound_statement());
+
+    scopes.push_back(new scope);
+    declarator* decl = fd->dec;
+    while (parenthesized_declarator* pd = dynamic_cast<parenthesized_declarator*>(decl->dd))
+        decl = pd->decl;
+
+    if (function_declarator* fdecl = dynamic_cast<function_declarator*>(decl->dd))
+    {
+        auto& table = scopes.front()->vars;
+        string identifier = fd->dec->get_identifier();
+        if (table.find(identifier) != table.end())
+        {
+            dbg("redefinicija");
+            reject();
+        }
+        dbg("funkcija");
+        table[identifier] = new function_object;
+
+        for (parameter_declaration* pard : fdecl->pl)
+        {
+            if (!pard->decl) continue;
+            declarator* decl = pard->decl;
+            auto& table = scopes.back()->vars;
+            string identifier = decl->get_identifier();
+            if (decl->dd->is_identifier() || decl->dd->is_definition())
+            {
+                if (table.find(identifier) != table.end())
+                {
+                    dbg("redefinicija");
+                    reject();
+                }
+                dbg("varijabla");
+                table[identifier] = new variable_object;
+            }
+            else
+                reject(); // deklaracija
+        }
+    }
+    else
+        reject(); // nije funkcija
+
+    fd->cs = accept(parse_compound_statement(false));
+    resolve_gotos();
+    scopes.pop_back();
     return fd;
 }
 
@@ -1079,7 +1145,7 @@ external_declaration* parser::parse_external_declaration()
 translation_unit* parser::parse_translation_unit()
 {
     translation_unit* root = new translation_unit;
-    scopes.push_back(root->objs = new scope);
+    scopes.push_back(root->sc = new scope);
     while (tokit != tokens.end())
         root->ed.push_back(accept(parse_external_declaration()));
     scopes.pop_back();
