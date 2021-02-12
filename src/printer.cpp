@@ -732,7 +732,7 @@ void switch_statement::print()
 {
     pout << "switch (";
     expr->print();
-    pout << ")";
+    pout << ") ";
     stat->print();
 }
 
