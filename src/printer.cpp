@@ -660,7 +660,7 @@ void goto_label::print()
 
 void case_label::print()
 {
-    if (pout.depth > 0)
+    if (pout.buffer.back() == '\t')
         pout.buffer.pop_back();
     pout << "case ";
     ce->print();
@@ -671,7 +671,7 @@ void case_label::print()
 
 void default_label::print()
 {
-    if (pout.depth > 0)
+    if (pout.buffer.back() == '\t')
         pout.buffer.pop_back();
     pout << "default:\n";
     pout.indent();
@@ -732,7 +732,7 @@ void switch_statement::print()
 {
     pout << "switch (";
     expr->print();
-    pout << ")";
+    pout << ") ";
     stat->print();
 }
 
