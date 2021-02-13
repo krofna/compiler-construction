@@ -1,6 +1,7 @@
-struct x {};
+struct x { int x; };
+
 void f(void) {
-    struct x *a;
+    struct x  *a;
     struct x **b;
     int **c;
     **b;

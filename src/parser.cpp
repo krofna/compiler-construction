@@ -643,9 +643,6 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
                 accepts("}");
             }
         }
-        if(ss->sds.empty())
-            reject();
-        
         return ss;
     }
     return nullptr;
