@@ -733,7 +733,12 @@ void switch_statement::print()
     pout << "switch (";
     expr->print();
     pout << ") ";
+    pout.depth++;
     stat->print();
+    pout.buffer.pop_back();
+    pout.buffer.pop_back();
+    pout << "}\n";
+    pout.depth--;
 }
 
 void while_statement::print()

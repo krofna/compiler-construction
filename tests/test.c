@@ -1,3 +1,11 @@
+int scanf(int x, int y) {
+    return 0;
+}
+
+int printf(int x) {
+    return 0;
+}
+
 //
 /*
  */
@@ -17,7 +25,8 @@ int main(int argc, char** argv)
 test
                                *///
         '\f';
-        int x = 5 /* komentar *// 2;
+        int x;
+        x = 5 /* komentar *// 2;
         "\r\f\n";
     }
 }
