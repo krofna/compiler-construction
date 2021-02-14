@@ -660,8 +660,11 @@ void goto_label::print()
 
 void case_label::print()
 {
+    /*
     if (pout.buffer.back() == '\t')
         pout.buffer.pop_back();
+    */
+    pout.unindent();
     pout << "case ";
     ce->print();
     pout << ":\n";
@@ -671,8 +674,11 @@ void case_label::print()
 
 void default_label::print()
 {
+    /*
     if (pout.buffer.back() == '\t')
         pout.buffer.pop_back();
+    */
+    pout.unindent();
     pout << "default:\n";
     pout.indent();
     stat->print();
@@ -733,12 +739,12 @@ void switch_statement::print()
     pout << "switch (";
     expr->print();
     pout << ") ";
-    pout.depth++;
+    //pout.depth++;
     stat->print();
-    pout.buffer.pop_back();
-    pout.buffer.pop_back();
-    pout << "}\n";
-    pout.depth--;
+    //pout.buffer.pop_back();
+    //pout.buffer.pop_back();
+    //pout << "}\n";
+    //pout.depth--;
 }
 
 void while_statement::print()
