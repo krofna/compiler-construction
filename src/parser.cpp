@@ -570,6 +570,14 @@ declaration* parser::parse_declaration()
             }
             else
             {
+                /* make separate scope for definitions or tag is_defined?
+                if(table.find(identifier) != table.end())
+                {
+                    dbg("redeklaracija");
+                    reject();
+                }
+                table[identifier] = new function_object;
+                */
                 dbg("deklaracija");
             }
         }
