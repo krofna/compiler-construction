@@ -570,14 +570,15 @@ declaration* parser::parse_declaration()
             }
             else
             {
-                /* make separate scope for definitions or tag is_defined?
+                ////////////////
+                // made bool is_defined; member in function_object
                 if(table.find(identifier) != table.end())
                 {
                     dbg("redeklaracija");
                     reject();
                 }
-                table[identifier] = new function_object;
-                */
+                table[identifier] = new function_object(false);
+                ////////////////
                 dbg("deklaracija");
             }
         }
@@ -1098,14 +1099,29 @@ function_definition* parser::parse_function_definition()
     {
         auto& table = scopes.front()->vars;
         string identifier = fd->dec->get_identifier();
-        if (table.find(identifier) != table.end())
+        ////////////////
+        auto table_elem = table.find(identifier);
+        if (table_elem != table.end())
         {
-            dbg("redefinicija");
-            reject();
+            auto fnc = dynamic_cast<function_object*>(table_elem->second);
+            if (fnc == NULL || fnc->is_defined)
+            {
+                dbg("redefinicija");
+                reject();
+            }
+            else
+            {
+                dbg("definicija");
+                fnc->is_defined = true;
+            }
         }
-        dbg("funkcija");
-        table[identifier] = new function_object;
-
+        else
+        {
+            dbg("funkcija");
+            table[identifier] = new function_object(true);
+        }
+        ////////////////
+        
         for (parameter_declaration* pard : fdecl->pl)
         {
             if (!pard->decl) continue;

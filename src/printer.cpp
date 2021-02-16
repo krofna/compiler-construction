@@ -176,7 +176,6 @@ void function_declarator::print()
 void pointer::print()
 {
     pout << "*";
-    pout << "!";
     for (type_qualifier* tq : tql)
         tq->print();
 

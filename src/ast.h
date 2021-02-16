@@ -8,10 +8,15 @@ struct node
 
 struct object
 {
+    virtual ~object()
+    {
+    }
 };
 
 struct function_object : object
 {
+    bool is_defined;
+    function_object(bool is_defined): is_defined(is_defined) {}
 };
 
 struct variable_object : object
