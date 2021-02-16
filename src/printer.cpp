@@ -735,7 +735,8 @@ void switch_statement::print()
 {
     pout << "switch (";
     expr->print();
-    pout << ") ";
+    pout << ")\n";
+    pout.indent();
     stat->print();
 }
 
