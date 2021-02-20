@@ -640,6 +640,8 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
         {
             ss->has_sds = true;
             ss->sds = parse_struct_declaration_list();
+            if (ss->sds.empty())
+                reject();
             accepts("}");
         }
         else
@@ -649,6 +651,8 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
             {
                 ss->has_sds = true;
                 ss->sds = parse_struct_declaration_list();
+                if (ss->sds.empty())
+                    reject();
                 accepts("}");
             }
         }
