@@ -20,11 +20,17 @@ int task_b(const char* filename)
 
 int task_cde(const char* filename, bool print)
 {
-    // todo: print tokenizer error
     vector<token> tokens = tokenize_file(filename);
     for (auto tok : tokens)
+    {
         if (tok.type == INVALID)
+        {
+            cerr << filename << ':' << tok.row
+                 << ':' << tok.col << ": " << tok.type
+                 << ' ' << tok.str << '\n';
             return EXIT_FAILURE;
+        }
+    }
 
     try
     {
