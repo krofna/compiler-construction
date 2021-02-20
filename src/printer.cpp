@@ -186,14 +186,9 @@ void pointer::print()
 void declarator::print()
 {
     if (p)
-    {
-        pout << "(";
         p->print();
-    }
 
     dd->print();
-    if (p)
-        pout << ")";
 }
 
 void declaration::print()
