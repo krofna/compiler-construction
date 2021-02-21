@@ -180,7 +180,11 @@ void pointer::print()
         tq->print();
 
     if (p)
+    {
+        pout << "(";
         p->print();
+        pout << ")";
+    }
 }
 
 void declarator::print()
