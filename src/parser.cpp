@@ -1,4 +1,5 @@
 #include "parser.h"
+#include <set>
 
 #include <iostream>
 //#define dbg(x) cerr << #x << " = " << x << endl
@@ -693,6 +694,11 @@ vector<declarator*> parser::parse_struct_declarator_list()
         while (check(","))
             ds.push_back(accept(parse_declarator()));
     }
+    // TODO: wrong error location
+    for (declarator* dec : ds)
+        if (!dec->dd->is_identifier() && !dec->dd->is_definition())
+            reject();
+
     return ds;
 }
 
@@ -701,9 +707,21 @@ vector<struct_declaration*> parser::parse_struct_declaration_list()
     vector<struct_declaration*> sds;
     while (struct_declaration* sd = parse_struct_declaration())
         sds.push_back(sd);
+
+    set<string> s;
+    for (struct_declaration* sd : sds)
+    {
+        for (declarator* dec : sd->ds)
+        {
+            string identifier = dec->get_identifier();
+            if (s.find(identifier) != s.end())
+                reject(); // TODO: error location
+            s.insert(identifier);
+        }
+    }
+
     return sds;
 }
-
 
 type_qualifier* parser::parse_type_qualifier()
 {
