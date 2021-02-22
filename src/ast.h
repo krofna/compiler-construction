@@ -138,7 +138,7 @@ struct direct_declarator
 {
     virtual void print();
     virtual string get_identifier();
-    virtual bool is_definition();
+    virtual bool is_definition(); // is function pointer
     virtual bool is_identifier();
 
     token tok;

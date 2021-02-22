@@ -561,11 +561,7 @@ declaration* parser::parse_declaration()
             if (d->dd->is_identifier() || d->dd->is_definition())
             {
                 if (table.find(identifier) != table.end())
-                {
-                    dbg("redefinicija");
-                    reject();
-                }
-                dbg("varijabla");
+                    reject(); // redefinition
                 table[identifier] = new variable_object;
             }
             else
@@ -574,16 +570,10 @@ declaration* parser::parse_declaration()
                 if (table_elem != table.end())
                 {
                     if (dynamic_cast<variable_object*>(table_elem->second))
-                    {
-                        dbg("redeklaracija");
-                        reject();
-                    }
+                        reject(); // redeclaration
                 }
                 else
-                {
                     table[identifier] = new function_object(false);
-                    dbg("deklaracija");
-                }
             }
         }
         return decl;
@@ -1127,53 +1117,39 @@ function_definition* parser::parse_function_definition()
     while (parenthesized_declarator* pd = dynamic_cast<parenthesized_declarator*>(decl->dd))
         decl = pd->decl;
 
-    if (function_declarator* fdecl = dynamic_cast<function_declarator*>(decl->dd))
-    {
-        auto& table = scopes.front()->vars;
-        string identifier = fd->dec->get_identifier();
-        auto table_elem = table.find(identifier);
-        if (table_elem != table.end())
-        {
-            auto fnc = dynamic_cast<function_object*>(table_elem->second);
-            if (fnc == NULL || fnc->is_defined)
-            {
-                dbg("redefinicija");
-                reject();
-            }
-            else
-            {
-                dbg("definicija");
-                fnc->is_defined = true;
-            }
-        }
-        else
-        {
-            dbg("funkcija");
-            table[identifier] = new function_object(true);
-        }
+    function_declarator* fdecl = dynamic_cast<function_declarator*>(decl->dd);
+    if (!fdecl)
+        reject(); // nije funkcija
 
-        for (parameter_declaration* pard : fdecl->pl)
-        {
-            if (!pard->decl) continue;
-            declarator* decl = pard->decl;
-            auto& table = scopes.back()->vars;
-            string identifier = decl->get_identifier();
-            if (decl->dd->is_identifier() || decl->dd->is_definition())
-            {
-                if (table.find(identifier) != table.end())
-                {
-                    dbg("redefinicija");
-                    reject();
-                }
-                dbg("varijabla");
-                table[identifier] = new variable_object;
-            }
-            else
-                reject(); // deklaracija
-        }
+    auto& table = scopes.front()->vars;
+    string identifier = fd->dec->get_identifier();
+    auto table_elem = table.find(identifier);
+    if (table_elem != table.end())
+    {
+        function_object* fnc = dynamic_cast<function_object*>(table_elem->second);
+        if (fnc == nullptr || fnc->is_defined)
+            reject(); // redefinicija
+        else
+            fnc->is_defined = true; // definicija deklariranog
     }
     else
-        reject(); // nije funkcija
+        table[identifier] = new function_object(true);
+
+    for (parameter_declaration* pard : fdecl->pl)
+    {
+        if (!pard->decl) continue;
+        declarator* decl = pard->decl;
+        auto& table = scopes.back()->vars;
+        string identifier = decl->get_identifier();
+        if (decl->dd->is_identifier() || decl->dd->is_definition())
+        {
+            if (table.find(identifier) != table.end())
+                reject(); // redefinicija
+            table[identifier] = new variable_object;
+        }
+        else
+            reject(); // deklaracija
+    }
 
     fd->cs = accept(parse_compound_statement(false));
     resolve_gotos();
