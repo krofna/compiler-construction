@@ -570,19 +570,22 @@ declaration* parser::parse_declaration()
             }
             else
             {
-                ////////////////
-                // made bool is_defined; member in function_object
-                if(table.find(identifier) != table.end())
+                auto table_elem = table.find(identifier);
+                if (table_elem != table.end())
                 {
-                    dbg("redeklaracija");
-                    reject();
+                    if (dynamic_cast<variable_object*>(table_elem->second))
+                    {
+                        dbg("redeklaracija");
+                        reject();
+                    }
                 }
-                table[identifier] = new function_object(false);
-                ////////////////
-                dbg("deklaracija");
+                else
+                {
+                    table[identifier] = new function_object(false);
+                    dbg("deklaracija");
+                }
             }
         }
-
         return decl;
     }
     return nullptr;
@@ -655,6 +658,11 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
                     reject();
                 accepts("}");
             }
+            auto it = structs.find(ss->id.str);
+            if (it == structs.end())
+                structs[ss->id.str] = ss;
+            else
+                reject();
         }
         return ss;
     }
@@ -936,6 +944,8 @@ labeled_statement* parser::parse_labeled_statement()
         cl->ce = accept(parse_constant_expression());
         accepts(":");
         cl->stat = accept(parse_statement());
+        if (!current_switch)
+            reject();
         return cl;
     }
     if (check("default"))
@@ -943,6 +953,8 @@ labeled_statement* parser::parse_labeled_statement()
         default_label* dl = new default_label;
         accepts(":");
         dl->stat = accept(parse_statement());
+        if (!current_switch)
+            reject();
         return dl;
     }
     return nullptr;
@@ -1012,7 +1024,10 @@ selection_statement* parser::parse_selection_statement()
         accepts("(");
         ss->expr = accept(parse_expression());
         accepts(")");
+        switch_statement* old_switch = current_switch;
+        current_switch = ss;
         ss->stat = accept(parse_statement());
+        current_switch = old_switch;
         return ss;
     }
     return nullptr;
@@ -1026,13 +1041,19 @@ iteration_statement* parser::parse_iteration_statement()
         accepts("(");
         ws->expr = accept(parse_expression());
         accepts(")");
+        iteration_statement* old_loop = current_loop;
+        current_loop = ws;
         ws->stat = accept(parse_statement());
+        current_loop = old_loop;
         return ws;
     }
     if (check("do"))
     {
         do_while_statement* dws = new do_while_statement;
+        iteration_statement* old_loop = current_loop;
+        current_loop = dws;
         dws->stat = accept(parse_statement());
+        current_loop = old_loop;
         accepts("while");
         accepts("(");
         dws->expr = accept(parse_expression());
@@ -1050,7 +1071,10 @@ iteration_statement* parser::parse_iteration_statement()
         accepts(";");
         fs->expr3 = parse_expression();
         accepts(")");
+        iteration_statement* old_loop = current_loop;
+        current_loop = fs;
         fs->stat = accept(parse_statement());
+        current_loop = old_loop;
         return fs;
     }
     return nullptr;
@@ -1070,12 +1094,16 @@ jump_statement* parser::parse_jump_statement()
     {
         continue_statement* cs = new continue_statement;
         accepts(";");
+        if (!current_loop)
+            reject();
         return cs;
     }
     if (check("break"))
     {
         break_statement* bs = new break_statement;
         accepts(";");
+        if (!current_loop)
+            reject();
         return bs;
     }
     if (check("return"))
@@ -1103,7 +1131,6 @@ function_definition* parser::parse_function_definition()
     {
         auto& table = scopes.front()->vars;
         string identifier = fd->dec->get_identifier();
-        ////////////////
         auto table_elem = table.find(identifier);
         if (table_elem != table.end())
         {
@@ -1124,8 +1151,7 @@ function_definition* parser::parse_function_definition()
             dbg("funkcija");
             table[identifier] = new function_object(true);
         }
-        ////////////////
-        
+
         for (parameter_declaration* pard : fdecl->pl)
         {
             if (!pard->decl) continue;

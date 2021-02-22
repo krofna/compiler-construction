@@ -19,8 +19,12 @@ private:
     vector<token>& tokens;
     token_iter tokit;
 
+    map<string, struct_or_union_specifier*> structs;
     vector<goto_statement*> gotos;
     map<string, goto_label*> labels;
+
+    iteration_statement* current_loop = nullptr;
+    switch_statement* current_switch = nullptr;
 
     void resolve_gotos()
     {
