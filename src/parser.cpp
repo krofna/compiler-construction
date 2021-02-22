@@ -553,6 +553,11 @@ declaration* parser::parse_declaration()
             return nullptr;
         }
 
+        // TOOD: check which tag (union or struct)
+        if (struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ds->ts))
+            if (!sus->has_sds && !find_tag(sus->id.str))
+                reject();
+
         for (declarator* d : decl->d)
         {
             auto& table = scopes.back()->vars;
@@ -648,11 +653,18 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
                     reject();
                 accepts("}");
             }
-            auto it = structs.find(ss->id.str);
-            if (it == structs.end())
-                structs[ss->id.str] = ss;
+            auto& table = scopes.back()->tags;
+            auto it = table.find(ss->id.str);
+            if (it != table.end())
+            {
+                tag* tg = it->second;
+                if (ss->has_sds && tg->is_defined)
+                    reject(); // redefinicija
+                else
+                    tg->is_defined = ss->has_sds; // definicija deklariranog
+            }
             else
-                reject();
+                table[ss->id.str] = new tag(ss->has_sds); // definicija
         }
         return ss;
     }

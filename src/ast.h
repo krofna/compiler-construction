@@ -25,6 +25,8 @@ struct variable_object : object
 
 struct tag
 {
+    bool is_defined;
+    tag(bool is_defined): is_defined(is_defined) {}
 };
 
 struct scope

@@ -19,7 +19,6 @@ private:
     vector<token>& tokens;
     token_iter tokit;
 
-    map<string, struct_or_union_specifier*> structs;
     vector<goto_statement*> gotos;
     map<string, goto_label*> labels;
 
@@ -126,6 +125,18 @@ private:
             scope* s = *i;
             auto it = s->vars.find(id);
             if (it != s->vars.end())
+                return it->second;
+        }
+        return nullptr;
+    }
+
+    tag* find_tag(const string& id)
+    {
+        for (auto i = scopes.rbegin(); i != scopes.rend(); ++i)
+        {
+            scope* s = *i;
+            auto it = s->tags.find(id);
+            if (it != s->tags.end())
                 return it->second;
         }
         return nullptr;
