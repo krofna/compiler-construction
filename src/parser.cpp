@@ -1149,7 +1149,7 @@ function_definition* parser::parse_function_definition()
 
     function_declarator* fdecl = dynamic_cast<function_declarator*>(decl->dd);
     if (!fdecl)
-        reject(); // nije funkcija
+        error::reject(decl->dd->get_identifier()); // nije funkcija
 
     auto& table = scopes.front()->vars;
     token identifier = fd->dec->get_identifier();
