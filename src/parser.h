@@ -31,7 +31,7 @@ private:
         {
             auto glp = labels.find(gs->id.str);
             if (glp == labels.end())
-                reject();
+                error::reject(gs->id);
 
             gs->gl = glp->second;
         }
@@ -72,7 +72,7 @@ private:
     void accepts(const string& what)
     {
         if (!check(what))
-            reject();
+            reject(tokit == tokens.end() ? 1 : 0);
     }
 
     template <class T> T* accept(T* ptr)
@@ -90,9 +90,9 @@ private:
         reject();
     }
 
-    void reject()
+    void reject(int rollback = 0)
     {
-        if (tokit == tokens.end())
+        while (rollback--)
             --tokit;
         error::reject(*tokit);
     }
@@ -100,7 +100,7 @@ private:
     token parse_token()
     {
         if (tokit == tokens.end())
-            reject();
+            reject(1);
         return *tokit++;
     }
 
@@ -114,7 +114,7 @@ private:
     token parse_identifier()
     {
         if (!check_identifier())
-            reject();
+            reject(tokit == tokens.end() ? 1 : 0);
         return *tokit++;
     }
 

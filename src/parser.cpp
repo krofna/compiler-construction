@@ -562,7 +562,7 @@ declaration* parser::parse_declaration()
         for (declarator* d : decl->d)
         {
             auto& table = scopes.back()->vars;
-            string identifier = d->get_identifier();
+            string identifier = d->get_identifier().str;
 
             if (d->dd->is_identifier() || d->dd->is_definition())
             {
@@ -694,10 +694,9 @@ vector<declarator*> parser::parse_struct_declarator_list()
         while (check(","))
             ds.push_back(accept(parse_declarator()));
     }
-    // TODO: wrong error location
     for (declarator* dec : ds)
         if (!dec->dd->is_identifier() && !dec->dd->is_definition())
-            reject();
+            error::reject(dec->dd->get_identifier());
 
     return ds;
 }
@@ -713,7 +712,7 @@ vector<struct_declaration*> parser::parse_struct_declaration_list()
     {
         for (declarator* dec : sd->ds)
         {
-            string identifier = dec->get_identifier();
+            string identifier = dec->get_identifier().str;
             if (s.find(identifier) != s.end())
                 reject(); // TODO: error location
             s.insert(identifier);
@@ -951,30 +950,32 @@ labeled_statement* parser::parse_labeled_statement()
         }
         goto_label* gl = new goto_label;
         gl->id = id;
-        gl->stat = accept(parse_statement());
         auto it = labels.find(id.str);
         if (it != labels.end())
-            reject();
+            reject(2);
 
+        gl->stat = accept(parse_statement());
         return labels[id.str] = gl;
     }
     if (check("case"))
     {
+        if (!current_switch)
+            reject(1);
+
         case_label* cl = new case_label;
         cl->ce = accept(parse_constant_expression());
         accepts(":");
         cl->stat = accept(parse_statement());
-        if (!current_switch)
-            reject();
         return cl;
     }
     if (check("default"))
     {
+        if (!current_switch)
+            reject(1);
+
         default_label* dl = new default_label;
         accepts(":");
         dl->stat = accept(parse_statement());
-        if (!current_switch)
-            reject();
         return dl;
     }
     return nullptr;
@@ -1112,18 +1113,20 @@ jump_statement* parser::parse_jump_statement()
     }
     if (check("continue"))
     {
+        if (!current_loop)
+            reject(1);
+
         continue_statement* cs = new continue_statement;
         accepts(";");
-        if (!current_loop)
-            reject();
         return cs;
     }
     if (check("break"))
     {
+        if (!current_loop)
+            reject(1);
+
         break_statement* bs = new break_statement;
         accepts(";");
-        if (!current_loop)
-            reject();
         return bs;
     }
     if (check("return"))
@@ -1152,7 +1155,7 @@ function_definition* parser::parse_function_definition()
         reject(); // nije funkcija
 
     auto& table = scopes.front()->vars;
-    string identifier = fd->dec->get_identifier();
+    string identifier = fd->dec->get_identifier().str;
     auto table_elem = table.find(identifier);
     if (table_elem != table.end())
     {
@@ -1170,7 +1173,7 @@ function_definition* parser::parse_function_definition()
         if (!pard->decl) continue;
         declarator* decl = pard->decl;
         auto& table = scopes.back()->vars;
-        string identifier = decl->get_identifier();
+        string identifier = decl->get_identifier().str;
         if (decl->dd->is_identifier() || decl->dd->is_definition())
         {
             if (table.find(identifier) != table.end())

@@ -139,7 +139,7 @@ struct function_specifier
 struct direct_declarator
 {
     virtual void print();
-    virtual string get_identifier();
+    virtual token get_identifier();
     virtual bool is_definition(); // is function pointer
     virtual bool is_identifier();
 
@@ -149,7 +149,7 @@ struct direct_declarator
 struct parenthesized_declarator : direct_declarator
 {
     void print();
-    virtual string get_identifier();
+    virtual token get_identifier();
     virtual bool is_definition();
     virtual bool is_identifier();
 
@@ -168,7 +168,7 @@ struct parameter_declaration
 struct function_declarator : direct_declarator
 {
     void print();
-    virtual string get_identifier();
+    virtual token get_identifier();
     virtual bool is_definition();
     virtual bool is_identifier();
 
@@ -187,7 +187,7 @@ struct pointer
 struct declarator
 {
     void print();
-    string get_identifier();
+    token get_identifier();
 
     pointer* p = nullptr;
     direct_declarator* dd;

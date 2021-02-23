@@ -1,21 +1,21 @@
 #include "ast.h"
 
-string direct_declarator::get_identifier()
+token direct_declarator::get_identifier()
 {
-    return tok.str;
+    return tok;
 }
 
-string parenthesized_declarator::get_identifier()
+token parenthesized_declarator::get_identifier()
 {
     return decl->get_identifier();
 }
 
-string function_declarator::get_identifier()
+token function_declarator::get_identifier()
 {
     return dd->get_identifier();
 }
 
-string declarator::get_identifier()
+token declarator::get_identifier()
 {
     return dd->get_identifier();
 }
