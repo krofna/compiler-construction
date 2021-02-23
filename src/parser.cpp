@@ -554,32 +554,32 @@ declaration* parser::parse_declaration()
             return nullptr;
         }
 
-        // TOOD: check which tag (union or struct)
-        if (struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ds->ts))
-            if (!sus->has_sds && !find_tag(sus->id.str))
-                reject();
-
         for (declarator* d : decl->d)
         {
             auto& table = scopes.back()->vars;
-            string identifier = d->get_identifier().str;
-
+            token identifier = d->get_identifier();
             if (d->dd->is_identifier() || d->dd->is_definition())
             {
-                if (table.find(identifier) != table.end())
-                    reject(); // redefinition
-                table[identifier] = new variable_object;
+                // TOOD: check which tag (union or struct)
+                if (struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ds->ts))
+                    if (!sus->has_sds && !find_tag(sus->id.str)->is_defined)
+                        error::reject(identifier);
+
+                if (table.find(identifier.str) != table.end())
+                    error::reject(identifier); // redefinition
+
+                table[identifier.str] = new variable_object;
             }
             else
             {
-                auto table_elem = table.find(identifier);
+                auto table_elem = table.find(identifier.str);
                 if (table_elem != table.end())
                 {
                     if (dynamic_cast<variable_object*>(table_elem->second))
-                        reject(); // redeclaration
+                        error::reject(identifier); // redeclaration as different kind
                 }
                 else
-                    table[identifier] = new function_object(false);
+                    table[identifier.str] = new function_object(false);
             }
         }
         return decl;
@@ -660,7 +660,7 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
             {
                 tag* tg = it->second;
                 if (ss->has_sds && tg->is_defined)
-                    reject(); // redefinicija
+                    error::reject(ss->id); // redefinicija
                 else
                     tg->is_defined = ss->has_sds; // definicija deklariranog
             }
@@ -712,10 +712,10 @@ vector<struct_declaration*> parser::parse_struct_declaration_list()
     {
         for (declarator* dec : sd->ds)
         {
-            string identifier = dec->get_identifier().str;
-            if (s.find(identifier) != s.end())
-                reject(); // TODO: error location
-            s.insert(identifier);
+            token tok = dec->get_identifier();
+            if (s.find(tok.str) != s.end())
+                error::reject(tok);
+            s.insert(tok.str);
         }
     }
 
@@ -952,7 +952,7 @@ labeled_statement* parser::parse_labeled_statement()
         gl->id = id;
         auto it = labels.find(id.str);
         if (it != labels.end())
-            reject(2);
+            error::reject(id);
 
         gl->stat = accept(parse_statement());
         return labels[id.str] = gl;
@@ -1155,33 +1155,33 @@ function_definition* parser::parse_function_definition()
         reject(); // nije funkcija
 
     auto& table = scopes.front()->vars;
-    string identifier = fd->dec->get_identifier().str;
-    auto table_elem = table.find(identifier);
+    token identifier = fd->dec->get_identifier();
+    auto table_elem = table.find(identifier.str);
     if (table_elem != table.end())
     {
         function_object* fnc = dynamic_cast<function_object*>(table_elem->second);
         if (fnc == nullptr || fnc->is_defined)
-            reject(); // redefinicija
+            error::reject(identifier); // redefinicija
         else
             fnc->is_defined = true; // definicija deklariranog
     }
     else
-        table[identifier] = new function_object(true);
+        table[identifier.str] = new function_object(true);
 
     for (parameter_declaration* pard : fdecl->pl)
     {
         if (!pard->decl) continue;
         declarator* decl = pard->decl;
         auto& table = scopes.back()->vars;
-        string identifier = decl->get_identifier().str;
+        token identifier = decl->get_identifier();
         if (decl->dd->is_identifier() || decl->dd->is_definition())
         {
-            if (table.find(identifier) != table.end())
-                reject(); // redefinicija
-            table[identifier] = new variable_object;
+            if (table.find(identifier.str) != table.end())
+                error::reject(identifier); // redefinicija
+            table[identifier.str] = new variable_object;
         }
         else
-            reject(); // deklaracija
+            reject(); // deklaracija | TOOD: je li ovo zbilja error?
     }
 
     fd->cs = accept(parse_compound_statement(false));
