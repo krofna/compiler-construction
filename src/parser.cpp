@@ -651,6 +651,10 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
                     reject();
                 accepts("}");
             }
+        }
+        // todo: deal with forward declarations
+        if (ss->has_sds)
+        {
             auto& table = scopes.back()->tags;
             auto it = table.find(ss->id.str);
             if (it != table.end())
@@ -801,8 +805,6 @@ direct_declarator* parser::parse_direct_declarator()
             function_declarator* fd = new function_declarator;
             fd->dd = dd;
             fd->pl = parse_parameter_type_list();
-            if (fd->pl.empty())
-                reject();
             accepts(")");
             return fd;
         }
@@ -1121,7 +1123,7 @@ jump_statement* parser::parse_jump_statement()
     }
     if (check("break"))
     {
-        if (!current_loop)
+        if (!current_loop && !current_switch)
             reject(1);
 
         break_statement* bs = new break_statement;
