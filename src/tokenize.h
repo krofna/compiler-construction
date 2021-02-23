@@ -11,12 +11,14 @@ enum token_type : int
     IDENTIFIER,
     CONSTANT,
     STRING_LITERAL,
-    PUNCTUATOR
+    PUNCTUATOR,
+
+    END_OF_FILE
 };
 
 struct token
 {
-    token() : type(INVALID), col(0), row(0)
+    token(token_type type = INVALID, int col = 0, int row = 0) : type(type), col(col), row(row)
     {
     }
 

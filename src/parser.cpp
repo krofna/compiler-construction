@@ -7,9 +7,6 @@
 
 primary_expression* parser::parse_primary_expression()
 {
-    if (tokit == tokens.end())
-        return nullptr;
-
     if (tokit->type == IDENTIFIER)
     {
         primary_expression* pe = new primary_expression;
@@ -1211,7 +1208,7 @@ translation_unit* parser::parse_translation_unit()
 {
     translation_unit* root = new translation_unit;
     scopes.push_back(root->sc = new scope);
-    while (tokit != tokens.end())
+    while (tokit->type != END_OF_FILE)
         root->ed.push_back(accept(parse_external_declaration()));
     scopes.pop_back();
     return root;

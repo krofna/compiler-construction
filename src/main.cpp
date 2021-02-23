@@ -11,9 +11,10 @@ int task_b(const char* filename)
             failure = true;
 
     for (auto tok : tokens)
-        (tok.type ? cout : cerr) << filename << ':' << tok.row
-                                 << ':' << tok.col << ": " << tok.type
-                                 << ' ' << tok.str << '\n';
+        if (tok.type != END_OF_FILE)
+            (tok.type ? cout : cerr) << filename << ':' << tok.row
+                                     << ':' << tok.col << ": " << tok.type
+                                     << ' ' << tok.str << '\n';
 
     return failure ? EXIT_FAILURE : EXIT_SUCCESS;
 }

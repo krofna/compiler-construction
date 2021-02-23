@@ -56,7 +56,7 @@ private:
 
     bool check(const string& what)
     {
-        if (tokit == tokens.end() || (tokit->str != what && tokit->str != get_digraph(what)))
+        if (tokit->str != what && tokit->str != get_digraph(what))
             return false;
         return ++tokit, true;
     }
@@ -72,7 +72,7 @@ private:
     void accepts(const string& what)
     {
         if (!check(what))
-            reject(tokit == tokens.end() ? 1 : 0);
+            reject();
     }
 
     template <class T> T* accept(T* ptr)
@@ -99,14 +99,14 @@ private:
 
     token parse_token()
     {
-        if (tokit == tokens.end())
-            reject(1);
+        if (tokit->type == END_OF_FILE)
+            reject();
         return *tokit++;
     }
 
     bool check_identifier()
     {
-        if (tokit == tokens.end() || tokit->type != IDENTIFIER)
+        if (tokit->type != IDENTIFIER)
             return false;
         return true;
     }
@@ -114,7 +114,7 @@ private:
     token parse_identifier()
     {
         if (!check_identifier())
-            reject(tokit == tokens.end() ? 1 : 0);
+            reject();
         return *tokit++;
     }
 

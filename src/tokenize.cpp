@@ -8,7 +8,8 @@ using namespace std;
 static const string token_names[] =
 {
     "error:", "keyword", "identifier",
-    "constant", "string-literal", "punctuator"
+    "constant", "string-literal", "punctuator",
+    "end-of-file"
 };
 
 const string& stringify(token_type type)
@@ -264,6 +265,7 @@ vector<token> tokenize(char* p)
         ++p;
     }
 
+    tokens.emplace_back(END_OF_FILE, col, row);
     return tokens;
 }
 
