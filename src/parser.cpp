@@ -676,6 +676,8 @@ struct_declaration* parser::parse_struct_declaration()
         struct_declaration* sd = new struct_declaration;
         sd->ts = ts;
         sd->ds = parse_struct_declarator_list();
+        if (sd->ds.empty())
+            reject();
         accepts(";");
         return sd;
     }
