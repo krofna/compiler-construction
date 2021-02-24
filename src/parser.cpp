@@ -26,10 +26,10 @@ primary_expression* parser::parse_primary_expression()
         pe->tok = parse_token();
         return pe;
     }
+    token_iter old = tokit;
     if (check("("))
     {
         parenthesized_expression* pe = new parenthesized_expression;
-        token_iter old = tokit;
         pe->expr = parse_expression();
         // maybe it's a type cast
         if (!pe->expr)
@@ -561,6 +561,9 @@ declaration* parser::parse_declaration()
         }
 
         register_type(ds->ts);
+        struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ds->ts);
+        if (!sus && decl->d.empty())
+            reject(1);
 
         for (declarator* d : decl->d)
         {
@@ -569,7 +572,7 @@ declaration* parser::parse_declaration()
             if (d->dd->is_identifier() || d->dd->is_definition())
             {
                 // TOOD: check which tag (union or struct)
-                if (struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ds->ts))
+                if (sus)
                 {
                     if (!d->is_pointer() && !sus->has_sds && !find_tag(sus->id.str)->is_defined)
                         error::reject(identifier);
