@@ -142,6 +142,29 @@ private:
         return nullptr;
     }
 
+    void register_type(type_specifier* ts)
+    {
+        struct_or_union_specifier* ss = dynamic_cast<struct_or_union_specifier*>(ts);
+        if (!ss)
+            return;
+
+        if (!ss->has_sds)
+            return;
+
+        auto& table = scopes.back()->tags;
+        auto it = table.find(ss->id.str);
+        if (it != table.end())
+        {
+            tag* tg = it->second;
+            if (ss->has_sds && tg->is_defined)
+                error::reject(ss->id); // redefinicija
+            else
+                tg->is_defined = ss->has_sds; // definicija deklariranog
+        }
+        else
+            table[ss->id.str] = new tag(ss->has_sds); // definicija
+    }
+
     expression* parse_expression();
     primary_expression* parse_primary_expression();
     postfix_expression* parse_postfix_expression();

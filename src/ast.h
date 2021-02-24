@@ -142,6 +142,7 @@ struct direct_declarator
     virtual token get_identifier();
     virtual bool is_definition(); // is function pointer
     virtual bool is_identifier();
+    virtual bool is_pointer();
 
     token tok;
 };
@@ -152,6 +153,7 @@ struct parenthesized_declarator : direct_declarator
     virtual token get_identifier();
     virtual bool is_definition();
     virtual bool is_identifier();
+    virtual bool is_pointer();
 
     declarator* decl;
 };
@@ -171,6 +173,7 @@ struct function_declarator : direct_declarator
     virtual token get_identifier();
     virtual bool is_definition();
     virtual bool is_identifier();
+    virtual bool is_pointer();
 
     direct_declarator* dd;
     vector<parameter_declaration*> pl;
@@ -188,6 +191,7 @@ struct declarator
 {
     void print();
     token get_identifier();
+    bool is_pointer();
 
     pointer* p = nullptr;
     direct_declarator* dd;
@@ -220,6 +224,9 @@ struct primary_expression
 
 struct parenthesized_expression : primary_expression
 {
+    virtual ~parenthesized_expression()
+    {
+    }
     void print();
 
     expression* expr;

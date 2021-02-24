@@ -29,7 +29,14 @@ primary_expression* parser::parse_primary_expression()
     if (check("("))
     {
         parenthesized_expression* pe = new parenthesized_expression;
-        pe->expr = accept(parse_expression());
+        pe->expr = parse_expression();
+        // maybe it's a type cast
+        if (!pe->expr)
+        {
+            delete pe;
+            tokit--;
+            return nullptr;
+        }
         accepts(")");
         return pe;
     }
@@ -544,12 +551,15 @@ declaration* parser::parse_declaration()
                 decl->d.push_back(accept(parse_declarator()));
         }
 
+        // maybe its a function definition
         if (!check(";"))
         {
             tokit = old;
             delete decl;
             return nullptr;
         }
+
+        register_type(ds->ts);
 
         for (declarator* d : decl->d)
         {
@@ -559,8 +569,10 @@ declaration* parser::parse_declaration()
             {
                 // TOOD: check which tag (union or struct)
                 if (struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ds->ts))
-                    if (!sus->has_sds && !find_tag(sus->id.str)->is_defined)
+                {
+                    if (!d->is_pointer() && !sus->has_sds && !find_tag(sus->id.str)->is_defined)
                         error::reject(identifier);
+                }
 
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinition
@@ -652,22 +664,6 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
                 accepts("}");
             }
         }
-        // todo: deal with forward declarations
-        if (ss->has_sds)
-        {
-            auto& table = scopes.back()->tags;
-            auto it = table.find(ss->id.str);
-            if (it != table.end())
-            {
-                tag* tg = it->second;
-                if (ss->has_sds && tg->is_defined)
-                    error::reject(ss->id); // redefinicija
-                else
-                    tg->is_defined = ss->has_sds; // definicija deklariranog
-            }
-            else
-                table[ss->id.str] = new tag(ss->has_sds); // definicija
-        }
         return ss;
     }
     return nullptr;
@@ -683,6 +679,7 @@ struct_declaration* parser::parse_struct_declaration()
         if (sd->ds.empty())
             reject();
         accepts(";");
+        register_type(ts);
         return sd;
     }
     return nullptr;
@@ -710,6 +707,7 @@ vector<struct_declaration*> parser::parse_struct_declaration_list()
     while (struct_declaration* sd = parse_struct_declaration())
         sds.push_back(sd);
 
+    // TODO
     set<string> s;
     for (struct_declaration* sd : sds)
     {
@@ -891,6 +889,7 @@ type_name* parser::parse_type_name()
         if (type_specifier* ts = parse_type_specifier())
         {
             tn->sqs.push_back(ts);
+            register_type(ts);
             continue;
         }
         if (type_qualifier* tq = parse_type_qualifier())
@@ -913,6 +912,7 @@ parameter_declaration* parser::parse_parameter_declaration()
     {
         parameter_declaration* pd = new parameter_declaration;
         pd->ds = ds;
+        register_type(ds->ts);
         if (declarator* decl = parse_declarator())
             pd->decl = decl;
         else
@@ -1144,6 +1144,7 @@ function_definition* parser::parse_function_definition()
 {
     function_definition* fd = new function_definition;
     fd->ds = accept(parse_declaration_specifiers());
+    register_type(fd->ds->ts);
     fd->dec = accept(parse_declarator());
 
     scopes.push_back(new scope);

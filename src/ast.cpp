@@ -51,3 +51,25 @@ bool function_declarator::is_definition()
 {
     return dd->is_definition();
 }
+
+bool direct_declarator::is_pointer()
+{
+    return false;
+}
+
+bool parenthesized_declarator::is_pointer()
+{
+    return decl->is_pointer();
+}
+
+bool function_declarator::is_pointer()
+{
+    return dd->is_pointer();
+}
+
+bool declarator::is_pointer()
+{
+    if (p)
+        return true;
+    return dd->is_pointer();
+}
