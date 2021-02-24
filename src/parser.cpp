@@ -29,12 +29,13 @@ primary_expression* parser::parse_primary_expression()
     if (check("("))
     {
         parenthesized_expression* pe = new parenthesized_expression;
+        token_iter old = tokit;
         pe->expr = parse_expression();
         // maybe it's a type cast
         if (!pe->expr)
         {
+            tokit = old;
             delete pe;
-            tokit--;
             return nullptr;
         }
         accepts(")");
