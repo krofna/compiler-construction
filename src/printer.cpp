@@ -93,8 +93,16 @@ void direct_abstract_declarator::print()
 {
     if (ad)
         ad->print();
+    pout << "(";
+    bool flg = false;
     for (parameter_declaration* pd : pl)
+    {
+        if (flg)
+            pout << ", ";
+        flg = true;
         pd->print();
+    }
+    pout << ")";
 }
 
 void abstract_declarator::print()
@@ -112,11 +120,19 @@ void abstract_declarator::print()
 
 void type_name::print()
 {
+    bool flg = false;
     for (specifier_qualifier* sq : sqs)
+    {
+        if (flg)
+            pout << " ";
+        flg = true;
         sq->print();
-
+    }
     if (ad)
+    {
+        pout << " ";
         ad->print();
+    }
 }
 
 void declaration_specifiers::print()
@@ -362,8 +378,9 @@ void unary_not_expression::print()
 void sizeof_expression::print()
 {
     pout << "(";
-    pout << "sizeof ";
+    pout << "sizeof(";
     ue->print();
+    pout << ")";
     pout << ")";
 }
 
