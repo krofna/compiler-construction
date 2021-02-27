@@ -562,6 +562,7 @@ declaration* parser::parse_declaration()
 
         register_type(ds->ts);
         struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ds->ts);
+        // you can do struct x; but not int;
         if (!sus && decl->d.empty())
             reject(1);
 
@@ -574,8 +575,8 @@ declaration* parser::parse_declaration()
                 // TOOD: check which tag (union or struct)
                 if (sus)
                 {
-                    if (!d->is_pointer() && !sus->has_sds && !find_tag(sus->id.str)->is_defined)
-                        error::reject(identifier);
+                    if (!d->is_pointer() && !find_tag(sus->id.str))
+                        error::reject(identifier); // incomplete type
                 }
 
                 if (table.find(identifier.str) != table.end())
@@ -1152,16 +1153,23 @@ function_definition* parser::parse_function_definition()
     fd->dec = accept(parse_declarator());
 
     scopes.push_back(new scope);
-    declarator* decl = fd->dec;
-    while (parenthesized_declarator* pd = dynamic_cast<parenthesized_declarator*>(decl->dd))
-        decl = pd->decl;
+    declarator* decl = fd->dec->unparenthesize();
 
     function_declarator* fdecl = dynamic_cast<function_declarator*>(decl->dd);
     if (!fdecl)
         error::reject(decl->dd->get_identifier()); // nije funkcija
 
-    auto& table = scopes.front()->vars;
     token identifier = fd->dec->get_identifier();
+
+    // check return type
+    if (!decl->p)
+    {
+        struct_or_union_specifier* ss = dynamic_cast<struct_or_union_specifier*>(fd->ds->ts);
+        if (ss && !find_tag(ss->id.str))
+            error::reject(identifier);
+    }
+
+    auto& table = scopes.front()->vars;
     auto table_elem = table.find(identifier.str);
     if (table_elem != table.end())
     {

@@ -73,3 +73,10 @@ bool declarator::is_pointer()
         return true;
     return dd->is_pointer();
 }
+
+declarator* declarator::unparenthesize()
+{
+    if (parenthesized_declarator* pd = dynamic_cast<parenthesized_declarator*>(dd))
+        return pd->decl->unparenthesize();
+    return this;
+}

@@ -154,15 +154,9 @@ private:
         auto& table = scopes.back()->tags;
         auto it = table.find(ss->id.str);
         if (it != table.end())
-        {
-            tag* tg = it->second;
-            if (ss->has_sds && tg->is_defined)
-                error::reject(ss->id); // redefinicija
-            else
-                tg->is_defined = ss->has_sds; // definicija deklariranog
-        }
-        else
-            table[ss->id.str] = new tag(ss->has_sds); // definicija
+            error::reject(ss->id); // redefinicija
+
+        table[ss->id.str] = new tag; // definicija
     }
 
     expression* parse_expression();

@@ -25,8 +25,6 @@ struct variable_object : object
 
 struct tag
 {
-    bool is_defined;
-    tag(bool is_defined): is_defined(is_defined) {}
 };
 
 struct scope
@@ -192,6 +190,7 @@ struct declarator
     void print();
     token get_identifier();
     bool is_pointer();
+    declarator* unparenthesize();
 
     pointer* p = nullptr;
     direct_declarator* dd;
