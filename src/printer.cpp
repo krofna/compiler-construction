@@ -378,9 +378,8 @@ void unary_not_expression::print()
 void sizeof_expression::print()
 {
     pout << "(";
-    pout << "sizeof(";
+    pout << "sizeof ";
     ue->print();
-    pout << ")";
     pout << ")";
 }
 
