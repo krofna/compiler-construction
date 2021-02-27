@@ -80,3 +80,13 @@ declarator* declarator::unparenthesize()
         return pd->decl->unparenthesize();
     return this;
 }
+
+bool builtin_type_specifier::is_void()
+{
+    return tok.str == "void";
+}
+
+bool struct_or_union_specifier::is_void()
+{
+    return false;
+}

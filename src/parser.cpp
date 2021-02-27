@@ -1150,11 +1150,10 @@ function_definition* parser::parse_function_definition()
     function_definition* fd = new function_definition;
     fd->ds = accept(parse_declaration_specifiers());
     register_type(fd->ds->ts);
+    scopes.push_back(new scope);
     fd->dec = accept(parse_declarator());
 
-    scopes.push_back(new scope);
     declarator* decl = fd->dec->unparenthesize();
-
     function_declarator* fdecl = dynamic_cast<function_declarator*>(decl->dd);
     if (!fdecl)
         error::reject(decl->dd->get_identifier()); // nije funkcija
@@ -1182,20 +1181,32 @@ function_definition* parser::parse_function_definition()
     else
         table[identifier.str] = new function_object(true);
 
-    for (parameter_declaration* pard : fdecl->pl)
+    // function with no parameters
+    if (fdecl->pl.size() == 1 && fdecl->pl.front()->ds->ts->is_void())
     {
-        if (!pard->decl) continue;
-        declarator* decl = pard->decl;
-        auto& table = scopes.back()->vars;
-        token identifier = decl->get_identifier();
-        if (decl->dd->is_identifier() || decl->dd->is_definition())
+        if (fdecl->pl.front()->ad || fdecl->pl.front()->decl)
+            reject();
+    }
+    // function with parameters
+    else
+    {
+        for (parameter_declaration* pard : fdecl->pl)
         {
-            if (table.find(identifier.str) != table.end())
-                error::reject(identifier); // redefinicija
-            table[identifier.str] = new variable_object;
+            if (!pard->decl)
+                reject();
+
+            declarator* decl = pard->decl;
+            auto& table = scopes.back()->vars;
+            token identifier = decl->get_identifier();
+            if (decl->dd->is_identifier() || decl->dd->is_definition())
+            {
+                if (table.find(identifier.str) != table.end())
+                    error::reject(identifier); // redefinicija
+                table[identifier.str] = new variable_object;
+            }
+            else
+                reject(); // deklaracija | TOOD: je li ovo zbilja error?
         }
-        else
-            reject(); // deklaracija | TOOD: je li ovo zbilja error?
     }
 
     fd->cs = accept(parse_compound_statement(false));

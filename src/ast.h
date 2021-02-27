@@ -55,12 +55,13 @@ struct type_qualifier : specifier_qualifier
 struct type_specifier : specifier_qualifier
 {
     virtual void print() = 0;
+    virtual bool is_void() = 0;
 };
 
 struct builtin_type_specifier : type_specifier
 {
     void print();
-
+    virtual bool is_void();
     token tok;
 };
 
@@ -77,6 +78,7 @@ struct struct_declaration
 struct struct_or_union_specifier : type_specifier
 {
     void print();
+    virtual bool is_void();
 
     token sou;
     token id;
