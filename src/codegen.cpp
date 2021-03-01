@@ -21,7 +21,14 @@ Value* declaration::codegen()
     {
         string identifier = de->get_identifier().str;
         variable_object* vo = find_variable(identifier);
-        vo->alloca = create_alloca(builder->getInt32Ty(), identifier);
+        if (de->is_pointer())
+        {
+            vo->alloca = create_alloca(PointerType::getUnqual(IntegerType::get(context, 32)), identifier);
+        }
+        else
+        {
+            vo->alloca = create_alloca(IntegerType::get(context, 32), identifier);
+        }
     }
 }
 
@@ -795,14 +802,13 @@ Value* if_statement::codegen()
     Function *function = builder->GetInsertBlock()->getParent();
 
     BasicBlock *header_block = BasicBlock::Create(context, "if-header", function);
-    builder->CreateBr(header_block);
-    builder->SetInsertPoint(header_block);
-    Value *cond = expr->make_rvalue();
-
     BasicBlock *then_block = BasicBlock::Create(context, "then", function);
     BasicBlock *else_block = BasicBlock::Create(context, "else", function);
     BasicBlock *end_block = BasicBlock::Create(context, "end", function);
 
+    builder->CreateBr(header_block);
+    builder->SetInsertPoint(header_block);
+    Value *cond = expr->make_rvalue();
     builder->CreateCondBr(cond, then_block, else_block);
 
     builder->SetInsertPoint(then_block);
@@ -972,7 +978,7 @@ Value* function_definition::codegen()
     builder->SetInsertPoint(entry_block);
     alloca_builder->SetInsertPoint(entry_block);
 
-    
+
     // BasicBlock *goto_block = BasicBlock::Create(context, "goto", function);
 
     // todo: pohrani parametre na stack
