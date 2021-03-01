@@ -1,7 +1,7 @@
 #include "ast.h"
 #include "llvm/IR/Verifier.h"
 
-static LLVMContext context;
+LLVMContext context;
 static unique_ptr<Module> module;
 static unique_ptr<IRBuilder<>> builder, alloca_builder;
 static BasicBlock *continue_block = nullptr;
@@ -38,14 +38,7 @@ Value* declaration::codegen()
     {
         string identifier = de->get_identifier().str;
         variable_object* vo = find_variable(identifier);
-        Type *type = IntegerType::get(context, 32);
-
-        // todo: more levels of indirection
-        if (de->is_pointer())
-        {
-            type = PointerType::getUnqual(type);
-        }
-        vo->store = create_variable(type, identifier);
+        vo->store = create_variable(vo->type, identifier);
     }
 }
 
@@ -81,7 +74,7 @@ Value* primary_expression::make_rvalue()
     }
     else if (tok.type == STRING_LITERAL)
     {
-        return builder->CreateGlobalStringPtr(tok.str.c_str());
+        return builder->CreateGlobalStringPtr(StringRef(tok.str.c_str() + 1, tok.str.size() - 2));
     }
     else
     {

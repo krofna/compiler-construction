@@ -1,4 +1,6 @@
-#include "ast.h"
+#include "types.h"
+
+extern LLVMContext context;
 
 vector<scope*> scopes;
 vector<goto_statement*> gotos;
@@ -61,6 +63,19 @@ void register_type(type_specifier* ts)
     if (it != table.end())
         error::reject(ss->id); // redefinicija
 
-    table[ss->id.str] = new tag; // definicija
-}
+    // definicija
+    tag *t = new tag;
+    t->type = make_struct(ss);
+    table[ss->id.str] = t;
 
+    for (struct_declaration* sd : ss->sds)
+    {
+        for (declarator* dec : sd->ds)
+        {
+            token tok = dec->get_identifier();
+            if (t->s.find(tok.str) != t->s.end())
+                error::reject(tok);
+            t->s.insert(tok.str);
+        }
+    }
+}

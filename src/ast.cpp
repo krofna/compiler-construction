@@ -452,3 +452,7 @@ token function_definition::get_identifier()
 {
     return dec->get_identifier();
 }
+
+variable_object::variable_object(Type *type) : type(type)
+{
+}

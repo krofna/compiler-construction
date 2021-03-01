@@ -1,5 +1,4 @@
 #include "parser.h"
-#include <set>
 
 #include <iostream>
 //#define dbg(x) cerr << #x << " = " << x << endl
@@ -582,7 +581,8 @@ declaration* parser::parse_declaration()
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinition
 
-                table[identifier.str] = new variable_object;
+                Type *type = make_type(ds->ts, d);
+                table[identifier.str] = new variable_object(type);
             }
             else
             {
@@ -711,20 +711,6 @@ vector<struct_declaration*> parser::parse_struct_declaration_list()
     vector<struct_declaration*> sds;
     while (struct_declaration* sd = parse_struct_declaration())
         sds.push_back(sd);
-
-    // TODO
-    set<string> s;
-    for (struct_declaration* sd : sds)
-    {
-        for (declarator* dec : sd->ds)
-        {
-            token tok = dec->get_identifier();
-            if (s.find(tok.str) != s.end())
-                error::reject(tok);
-            s.insert(tok.str);
-        }
-    }
-
     return sds;
 }
 
@@ -1202,7 +1188,9 @@ function_definition* parser::parse_function_definition()
             {
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinicija
-                table[identifier.str] = new variable_object;
+
+                Type *type = make_type(pard->ds->ts, decl);
+                table[identifier.str] = new variable_object(type);
             }
             else
                 reject(); // deklaracija | TOOD: je li ovo zbilja error?

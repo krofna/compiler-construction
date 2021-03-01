@@ -1,6 +1,7 @@
 #pragma once
 #include "error.h"
 #include <map>
+#include <set>
 #include "llvm/IR/IRBuilder.h"
 using namespace llvm;
 
@@ -21,13 +22,20 @@ struct function_object : object
     function_object(bool is_defined): is_defined(is_defined) {}
 };
 
+struct type_specifier;
+struct declarator;
+
 struct variable_object : object
 {
-    Value* store = nullptr;
+    variable_object(Type *type);
+    Value *store = nullptr;
+    Type *type = nullptr;
 };
 
 struct tag
 {
+    set<string> s;
+    StructType *type;
 };
 
 struct scope
