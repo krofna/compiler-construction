@@ -72,8 +72,11 @@ Value* primary_expression::make_rvalue()
 {
     if (tok.type == IDENTIFIER)
     {
-        // todo: može biti i poziv ili globalna
-        return builder->CreateLoad(find_variable(tok.str)->store);
+        if (variable_object* vo = find_variable(tok.str))
+            return builder->CreateLoad(vo->store);
+        if (function_object* fo = find_function(tok.str))
+            return fo->function;
+        assert(false);
     }
     else if (tok.type == CONSTANT)
     {
@@ -130,6 +133,11 @@ Value* subscript_expression::make_lvalue()
 
 Value* call_expression::make_rvalue()
 {
+    vector<Value*> cargs;
+    for (assignment_expression* ae : args)
+        cargs.push_back(ae->make_rvalue());
+
+    builder->CreateCall((Function*)pfe->make_rvalue(), cargs);
 }
 
 Value* call_expression::make_lvalue()
