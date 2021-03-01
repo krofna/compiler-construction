@@ -8,6 +8,8 @@ struct s_t
     char *ptr;
 } obj;
 
+int puts(char*);
+
 int main(void)
 {
     int x, y, z, *p, *q;
@@ -27,5 +29,6 @@ int main(void)
     *p = *q;
     g1 = 3;
     ptr = "keks";
+    puts(ptr);
     struct s_t lobj;
 }

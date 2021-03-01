@@ -32,13 +32,15 @@ static Value *create_variable(Type *type, const string &var_name)
 
 Value* declaration::codegen()
 {
-    // todo: isključi deklaracije funkcija
     // todo: function pointer
     for (declarator* de : d)
     {
-        string identifier = de->get_identifier().str;
-        variable_object* vo = find_variable(identifier);
-        vo->store = create_variable(vo->type, identifier);
+        if (de->dd->is_identifier() || de->dd->is_definition())
+        {
+            string identifier = de->get_identifier().str;
+            variable_object* vo = find_variable(identifier);
+            vo->store = create_variable(vo->type, identifier);
+        }
     }
 }
 

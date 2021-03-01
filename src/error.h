@@ -15,12 +15,12 @@ struct error : std::runtime_error
     {
     }
 
-    static void reject(token tok)
+    [[noreturn]] static void reject(token tok)
     {
         throw error(tok);
     }
 
-    static void reject()
+    [[noreturn]] static void reject()
     {
         throw error(token());
     }
