@@ -4,11 +4,12 @@ extern LLVMContext context;
 
 Type *make_builtin(builtin_type_specifier* bts)
 {
-    int bits = 0;
     if (bts->tok.str == "int")
         return IntegerType::get(context, 32);
     else if (bts->tok.str == "char")
         return IntegerType::get(context, 8);
+    else if (bts->tok.str == "void")
+        return Type::getVoidTy(context);
     assert(false);
 }
 
@@ -29,15 +30,12 @@ StructType *make_struct(struct_or_union_specifier* sus)
 
 Type *make_ptr(Type *type, declarator *de)
 {
-    // todo: more levels of indirection
-    if (de->is_pointer())
-    {
+    for (int i = 0; i < de->num_pointers(); ++i)
         type = PointerType::getUnqual(type);
-    }
     return type;
 }
 
-Type *make_noptr_type(type_specifier* ts, declarator* de)
+Type *make_noptr_type(type_specifier* ts)
 {
     if (builtin_type_specifier* bts = dynamic_cast<builtin_type_specifier*>(ts))
         return make_builtin(bts);
@@ -48,7 +46,21 @@ Type *make_noptr_type(type_specifier* ts, declarator* de)
 
 Type *make_type(type_specifier* ts, declarator* de)
 {
-    Type *type = make_noptr_type(ts, de);
+    Type *type = make_noptr_type(ts);
     type = make_ptr(type, de);
     return type;
+}
+
+FunctionType *make_function(type_specifier* ts, declarator* de)
+{
+    vector<Type*> arguments;
+    function_declarator* fd = dynamic_cast<function_declarator*>(de->dd);
+    if (!fd->is_noparam())
+    {
+        // todo: unparenthesize?
+        // todo: abstract declarators
+        for (parameter_declaration *pd : fd->pl)
+            arguments.push_back(make_type(pd->ds->ts, pd->decl));
+    }
+    return FunctionType::get(make_type(ts, de), arguments, false);
 }

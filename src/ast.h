@@ -18,8 +18,11 @@ struct object
 
 struct function_object : object
 {
+    function_object(bool is_defined);
+
+    FunctionType *type = nullptr;
+    Function *function = nullptr;
     bool is_defined;
-    function_object(bool is_defined): is_defined(is_defined) {}
 };
 
 struct type_specifier;
@@ -159,6 +162,7 @@ struct direct_declarator
     virtual bool is_definition(); // is function pointer
     virtual bool is_identifier();
     virtual bool is_pointer();
+    virtual int num_pointers();
 
     token tok;
 };
@@ -170,6 +174,7 @@ struct parenthesized_declarator : direct_declarator
     virtual bool is_definition();
     virtual bool is_identifier();
     virtual bool is_pointer();
+    virtual int num_pointers();
 
     declarator* decl;
 };
@@ -190,6 +195,8 @@ struct function_declarator : direct_declarator
     virtual bool is_definition();
     virtual bool is_identifier();
     virtual bool is_pointer();
+    bool is_noparam();
+    virtual int num_pointers();
 
     direct_declarator* dd;
     vector<parameter_declaration*> pl;
@@ -198,6 +205,7 @@ struct function_declarator : direct_declarator
 struct pointer
 {
     void print();
+    int num_pointers();
 
     vector<type_qualifier*> tql;
     pointer* p = nullptr;
@@ -209,6 +217,7 @@ struct declarator
     token get_identifier();
     bool is_pointer();
     declarator* unparenthesize();
+    int num_pointers();
 
     pointer* p = nullptr;
     direct_declarator* dd;
@@ -955,6 +964,7 @@ struct translation_unit
 
 object* find_var(const string& id);
 variable_object* find_variable(const string& id);
+function_object* find_function(const string& id);
 tag* find_tag(const string& id);
 void register_type(type_specifier* ts);
 void resolve_gotos();

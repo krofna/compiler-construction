@@ -37,6 +37,11 @@ variable_object* find_variable(const string& id)
     return dynamic_cast<variable_object*>(find_var(id));
 }
 
+function_object* find_function(const string& id)
+{
+    return dynamic_cast<function_object*>(find_var(id));
+}
+
 tag* find_tag(const string& id)
 {
     for (auto i = scopes.rbegin(); i != scopes.rend(); ++i)

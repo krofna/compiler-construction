@@ -35,11 +35,23 @@ Value* declaration::codegen()
     // todo: function pointer
     for (declarator* de : d)
     {
+        string identifier = de->get_identifier().str;
         if (de->dd->is_identifier() || de->dd->is_definition())
         {
-            string identifier = de->get_identifier().str;
             variable_object* vo = find_variable(identifier);
             vo->store = create_variable(vo->type, identifier);
+        }
+        else
+        {
+            function_object* fo = find_function(identifier);
+            if (!fo->function)
+            {
+                fo->function = Function::Create(
+                    fo->type,
+                    GlobalValue::ExternalLinkage,
+                    identifier.c_str(),
+                    *module);
+            }
         }
     }
 }
@@ -969,14 +981,11 @@ Value* compound_statement::codegen()
 Value* function_definition::codegen()
 {
     scopes.push_back(sc);
-    vector<Type *> argument_types;
-    // todo: arg types
 
-    FunctionType *func_type = FunctionType::get(
-        builder->getInt32Ty(), argument_types, false);
+    function_object *fo = find_function(get_identifier().str);
 
     Function *function = Function::Create(
-        func_type,
+        fo->type,
         GlobalValue::ExternalLinkage,
         get_identifier().str,
         *module);

@@ -438,6 +438,33 @@ declarator* declarator::unparenthesize()
     return this;
 }
 
+int direct_declarator::num_pointers()
+{
+    return 0;
+}
+
+int parenthesized_declarator::num_pointers()
+{
+    return decl->num_pointers();
+}
+
+int function_declarator::num_pointers()
+{
+    return dd->num_pointers();
+}
+
+int pointer::num_pointers()
+{
+    int num = p ? p->num_pointers() : 0;
+    return num + 1;
+}
+
+int declarator::num_pointers()
+{
+    int num = p ? p->num_pointers() : 0;
+    return num + dd->num_pointers();
+}
+
 bool builtin_type_specifier::is_void()
 {
     return tok.str == "void";
@@ -453,6 +480,15 @@ token function_definition::get_identifier()
     return dec->get_identifier();
 }
 
+bool function_declarator::is_noparam()
+{
+    return pl.size() == 1 && pl.front()->ds->ts->is_void();
+}
+
 variable_object::variable_object(Type *type) : type(type)
+{
+}
+
+function_object::function_object(bool is_defined) : is_defined(is_defined)
 {
 }

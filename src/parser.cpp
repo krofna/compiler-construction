@@ -593,7 +593,11 @@ declaration* parser::parse_declaration()
                         error::reject(identifier); // redeclaration as different kind
                 }
                 else
-                    table[identifier.str] = new function_object(false);
+                {
+                    function_object *fo = new function_object(false);
+                    fo->type = make_function(ds->ts, d);
+                    table[identifier.str] = fo;
+                }
             }
         }
         return decl;
@@ -1165,10 +1169,14 @@ function_definition* parser::parse_function_definition()
             fnc->is_defined = true; // definicija deklariranog
     }
     else
-        table[identifier.str] = new function_object(true);
+    {
+        function_object* fo = new function_object(true);
+        fo->type = make_function(fd->ds->ts, fd->dec);
+        table[identifier.str] = fo;
+    }
 
     // function with no parameters
-    if (fdecl->pl.size() == 1 && fdecl->pl.front()->ds->ts->is_void())
+    if (fdecl->is_noparam())
     {
         if (fdecl->pl.front()->ad || fdecl->pl.front()->decl)
             reject();
