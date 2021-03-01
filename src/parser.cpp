@@ -832,45 +832,49 @@ pointer* parser::parse_pointer()
     return nullptr;
 }
 
-direct_abstract_declarator* parser::parse_direct_abstract_declarator()
+direct_declarator* parser::parse_nof_direct_abstract_declarator()
 {
     if (check("("))
     {
-        direct_abstract_declarator* dad = new direct_abstract_declarator;
-        if (abstract_declarator* ad = parse_abstract_declarator())
-        {
-            dad->ad = ad;
-            accepts(")");
-            if (check("("))
-            {
-                dad->pl = parse_parameter_type_list();
-                accepts(")");
-            }
-        }
-        else
-        {
-            dad->pl = parse_parameter_type_list();
-            accepts(")");
-        }
-        return dad;
+        parenthesized_declarator* pd = new parenthesized_declarator;
+        pd->decl = accept(parse_declarator());
+        accepts(")");
+        return pd;
     }
     return nullptr;
 }
 
-abstract_declarator* parser::parse_abstract_declarator()
+direct_declarator* parser::parse_direct_abstract_declarator()
+{
+    if (direct_declarator* dd = parse_nof_direct_declarator())
+    {
+        if (check("("))
+        {
+            function_declarator* fd = new function_declarator;
+            fd->dd = dd;
+            fd->pl = parse_parameter_type_list();
+            accepts(")");
+            return fd;
+        }
+        return dd;
+    }
+    return nullptr;
+}
+
+declarator* parser::parse_abstract_declarator()
 {
     if (pointer* p = parse_pointer())
     {
-        abstract_declarator* ad = new abstract_declarator;
+        declarator* ad = new declarator;
         ad->p = p;
-        if (direct_abstract_declarator* dad = parse_direct_abstract_declarator())
-            ad->dad = dad;
+        if (direct_declarator* dad = parse_direct_abstract_declarator())
+            ad->dd = dad;
         return ad;
     }
-    else if (direct_abstract_declarator* dad = parse_direct_abstract_declarator())
+    else if (direct_declarator* dad = parse_direct_abstract_declarator())
     {
-        abstract_declarator* ad = new abstract_declarator;
-        ad->dad = dad;
+        declarator* ad = new declarator;
+        ad->dd = dad;
         return ad;
     }
     return nullptr;

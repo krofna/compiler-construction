@@ -89,35 +89,6 @@ void struct_or_union_specifier::print()
     }
 }
 
-void direct_abstract_declarator::print()
-{
-    if (ad)
-        ad->print();
-    pout << "(";
-    bool flg = false;
-    for (parameter_declaration* pd : pl)
-    {
-        if (flg)
-            pout << ", ";
-        flg = true;
-        pd->print();
-    }
-    pout << ")";
-}
-
-void abstract_declarator::print()
-{
-    if (p)
-    {
-        pout << "(";
-        p->print();
-    }
-    if (dad)
-        dad->print();
-    if (p)
-        pout << ")";
-}
-
 void type_name::print()
 {
     bool flg = false;
@@ -152,7 +123,8 @@ void function_specifier::print()
 
 void direct_declarator::print()
 {
-    pout << tok.str;
+    if (tok.type != INVALID)
+        pout << tok.str;
 }
 
 void parenthesized_declarator::print()

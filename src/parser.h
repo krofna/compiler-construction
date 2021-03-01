@@ -133,8 +133,9 @@ private:
     struct_declaration* parse_struct_declaration();
     vector<declarator*> parse_struct_declarator_list();
     vector<struct_declaration*> parse_struct_declaration_list();
-    direct_abstract_declarator* parse_direct_abstract_declarator();
-    abstract_declarator* parse_abstract_declarator();
+    direct_declarator* parse_nof_direct_abstract_declarator();
+    direct_declarator* parse_direct_abstract_declarator();
+    declarator* parse_abstract_declarator();
     type_name* parse_type_name();
     declaration_specifiers* parse_declaration_specifiers();
     vector<parameter_declaration*> parse_parameter_type_list();

@@ -9,7 +9,7 @@ Type *make_builtin(builtin_type_specifier* bts)
     else if (bts->tok.str == "char")
         return IntegerType::get(context, 8);
     else if (bts->tok.str == "void")
-        return Type::getVoidTy(context);
+        return IntegerType::get(context, 8);
     assert(false);
 }
 
@@ -54,11 +54,10 @@ Type *make_type(type_specifier* ts, declarator* de)
 FunctionType *make_function(type_specifier* ts, declarator* de)
 {
     vector<Type*> arguments;
-    function_declarator* fd = dynamic_cast<function_declarator*>(de->dd);
+    declarator* decl = de->unparenthesize();
+    function_declarator* fd = dynamic_cast<function_declarator*>(decl->dd);
     if (!fd->is_noparam())
     {
-        // todo: unparenthesize?
-        // todo: abstract declarators
         for (parameter_declaration *pd : fd->pl)
             arguments.push_back(make_type(pd->ds->ts, pd->decl));
     }

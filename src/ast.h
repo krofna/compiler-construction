@@ -105,33 +105,12 @@ struct struct_or_union_specifier : type_specifier
     vector<struct_declaration*> sds;
 };
 
-struct abstract_declarator;
-struct parameter_declaration;
-
-struct direct_abstract_declarator
-{
-    void print();
-
-    abstract_declarator* ad = nullptr;
-    vector<parameter_declaration*> pl;
-};
-
-struct pointer;
-
-struct abstract_declarator
-{
-    void print();
-
-    pointer* p = nullptr;
-    direct_abstract_declarator* dad = nullptr;
-};
-
 struct type_name
 {
     void print();
 
     vector<specifier_qualifier*> sqs;
-    abstract_declarator* ad = nullptr;
+    declarator* ad = nullptr;
 };
 
 struct declaration_specifiers
@@ -185,7 +164,7 @@ struct parameter_declaration
 
     declaration_specifiers* ds;
     declarator* decl = nullptr;
-    abstract_declarator* ad = nullptr;
+    declarator* ad = nullptr;
 };
 
 struct function_declarator : direct_declarator
