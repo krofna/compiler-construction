@@ -682,63 +682,64 @@ Value* assignment_expression::make_rvalue()
         builder->CreateStore(r, l);
         return r;
     }
+    Value *lv = builder->CreateLoad(l);
     if (op.str == "*=")
     {
-        Value *v = builder->CreateMul(l, r);
+        Value *v = builder->CreateMul(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == "/=")
     {
-        Value *v = builder->CreateSDiv(l, r);
+        Value *v = builder->CreateSDiv(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == "%=")
     {
-        Value *v = builder->CreateSRem(l, r);
+        Value *v = builder->CreateSRem(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == "+=")
     {
-        Value *v = builder->CreateAdd(l, r);
+        Value *v = builder->CreateAdd(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == "-=")
     {
-        Value *v = builder->CreateSub(l, r);
+        Value *v = builder->CreateSub(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == "<<=")
     {
-        Value *v = builder->CreateShl(l, r);
+        Value *v = builder->CreateShl(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == ">>=")
     {
-        Value *v = builder->CreateAShr(l, r);
+        Value *v = builder->CreateAShr(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == "&=")
     {
-        Value *v = builder->CreateAnd(l, r);
+        Value *v = builder->CreateAnd(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == "^=")
     {
-        Value *v = builder->CreateXor(l, r);
+        Value *v = builder->CreateXor(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
     if (op.str == "|=")
     {
-        Value *v = builder->CreateOr(l, r);
+        Value *v = builder->CreateOr(lv, r);
         builder->CreateStore(v, l);
         return v;
     }
