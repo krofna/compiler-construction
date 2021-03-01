@@ -837,7 +837,7 @@ direct_declarator* parser::parse_nof_direct_abstract_declarator()
     if (check("("))
     {
         parenthesized_declarator* pd = new parenthesized_declarator;
-        pd->decl = accept(parse_declarator());
+        pd->decl = accept(parse_abstract_declarator());
         accepts(")");
         return pd;
     }
@@ -846,7 +846,7 @@ direct_declarator* parser::parse_nof_direct_abstract_declarator()
 
 direct_declarator* parser::parse_direct_abstract_declarator()
 {
-    if (direct_declarator* dd = parse_nof_direct_declarator())
+    if (direct_declarator* dd = parse_nof_direct_abstract_declarator())
     {
         if (check("("))
         {

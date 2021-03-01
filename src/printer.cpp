@@ -147,7 +147,7 @@ void parameter_declaration::print()
 void function_declarator::print()
 {
     pout << "(";
-    dd->print();
+    if (dd) dd->print();
     pout << "(";
     bool flg = false;
     for (parameter_declaration* pd : pl)
@@ -183,7 +183,8 @@ void declarator::print()
         p->print();
     }
 
-    dd->print();
+    if (dd)
+        dd->print();
     if (p)
         pout << ")";
 }
