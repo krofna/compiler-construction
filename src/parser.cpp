@@ -992,7 +992,7 @@ compound_statement* parser::parse_compound_statement(bool open_scope)
     if (check("{"))
     {
         compound_statement* cs = new compound_statement;
-        if (open_scope) scopes.push_back(cs->sc = new scope);
+        if (open_scope) scopes.push_back(cs->sc = new scope(false));
         while (!check("}"))
             cs->bi.push_back(accept(parse_block_item()));
         if (open_scope) scopes.pop_back();
@@ -1150,7 +1150,7 @@ function_definition* parser::parse_function_definition()
     function_definition* fd = new function_definition;
     fd->ds = accept(parse_declaration_specifiers());
     register_type(fd->ds->ts);
-    scopes.push_back(fd->sc = new scope);
+    scopes.push_back(fd->sc = new scope(false));
     fd->dec = accept(parse_declarator());
 
     declarator* decl = fd->dec->unparenthesize();
@@ -1235,7 +1235,7 @@ external_declaration* parser::parse_external_declaration()
 translation_unit* parser::parse_translation_unit()
 {
     translation_unit* root = new translation_unit;
-    scopes.push_back(root->sc = new scope);
+    scopes.push_back(root->sc = new scope(true));
     while (tokit->type != END_OF_FILE)
         root->ed.push_back(accept(parse_external_declaration()));
     scopes.pop_back();

@@ -23,7 +23,7 @@ struct function_object : object
 
 struct variable_object : object
 {
-    AllocaInst* alloca = nullptr;
+    Value* store = nullptr;
 };
 
 struct tag
@@ -32,6 +32,9 @@ struct tag
 
 struct scope
 {
+    scope(bool global) : global(global)
+    {
+    }
     ~scope()
     {
         for (auto [str, obj] : vars)
@@ -39,6 +42,7 @@ struct scope
         for (auto [str, obj] : tags)
             delete obj;
     }
+    bool global;
     map<string, object*> vars;
     map<string, tag*> tags;
 };

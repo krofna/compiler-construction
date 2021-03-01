@@ -14,21 +14,38 @@ static AllocaInst *create_alloca(Type *type, const string &var_name)
     return alloca_builder->CreateAlloca(type, 0, var_name.c_str());
 }
 
+static GlobalVariable *create_global(Type *type, const string &var_name)
+{
+    return new GlobalVariable(*module, type, false,
+                              GlobalValue::CommonLinkage,
+                              Constant::getNullValue(type),
+                              var_name.c_str());
+}
+
+static Value *create_variable(Type *type, const string &var_name)
+{
+    scope *s = scopes.back();
+    if (s->global)
+        return create_global(type, var_name);
+    return create_alloca(type, var_name);
+}
+
 Value* declaration::codegen()
 {
-    // todo: alloca samo za lokalne
+    // todo: isključi deklaracije funkcija
+    // todo: function pointer
     for (declarator* de : d)
     {
         string identifier = de->get_identifier().str;
         variable_object* vo = find_variable(identifier);
+        Type *type = IntegerType::get(context, 32);
+
+        // todo: more levels of indirection
         if (de->is_pointer())
         {
-            vo->alloca = create_alloca(PointerType::getUnqual(IntegerType::get(context, 32)), identifier);
+            type = PointerType::getUnqual(type);
         }
-        else
-        {
-            vo->alloca = create_alloca(IntegerType::get(context, 32), identifier);
-        }
+        vo->store = create_variable(type, identifier);
     }
 }
 
@@ -37,7 +54,7 @@ Value* primary_expression::make_lvalue()
     if (tok.type == IDENTIFIER)
     {
         // todo: može biti i poziv ili globalna
-        return find_variable(tok.str)->alloca;
+        return find_variable(tok.str)->store;
     }
     error::reject(tok);
 }
@@ -47,7 +64,7 @@ Value* primary_expression::make_rvalue()
     if (tok.type == IDENTIFIER)
     {
         // todo: može biti i poziv ili globalna
-        return builder->CreateLoad(find_variable(tok.str)->alloca);
+        return builder->CreateLoad(find_variable(tok.str)->store);
     }
     else if (tok.type == CONSTANT)
     {
@@ -64,7 +81,7 @@ Value* primary_expression::make_rvalue()
     }
     else if (tok.type == STRING_LITERAL)
     {
-        return ConstantDataArray::getString(context, tok.str, true);
+        return builder->CreateGlobalStringPtr(tok.str.c_str());
     }
     else
     {
