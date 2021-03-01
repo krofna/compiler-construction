@@ -13,6 +13,7 @@ int puts(char* str);
 int main(void)
 {
     int x, y, z, *p, *q;
+    z = 3;
     x = y + z;
     x = y * z;
     x = y / z;
@@ -26,6 +27,7 @@ int main(void)
     x = -y;
     x += y;
     q = &y;
+    p = &x;
     *p = *q;
     g1 = 3;
     ptr = "keks";

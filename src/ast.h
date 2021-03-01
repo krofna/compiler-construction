@@ -956,7 +956,7 @@ struct translation_unit
 {
     ~translation_unit();
     void print();
-    Value* codegen();
+    Value* codegen(const char* filename);
 
     scope* sc;
     vector<external_declaration*> ed;

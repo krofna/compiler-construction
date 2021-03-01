@@ -41,7 +41,7 @@ int task_cdef(const char* filename, bool print, bool compile)
         if (print)
             tu->print();
         if (compile)
-            tu->codegen();
+            tu->codegen(filename);
         delete tu;
     }
     catch (const error& e)

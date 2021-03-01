@@ -1,5 +1,7 @@
 #include "ast.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/raw_ostream.h"
 
 LLVMContext context;
 static unique_ptr<Module> module;
@@ -1023,9 +1025,9 @@ Value* external_declaration::codegen()
     return decl->codegen();
 }
 
-Value* translation_unit::codegen()
+Value* translation_unit::codegen(const char* filename)
 {
-    module = make_unique<Module>("tomo-i-mislav.c", context);
+    module = make_unique<Module>(filename, context);
     builder = make_unique<IRBuilder<>>(context);
     alloca_builder = make_unique<IRBuilder<>>(context);
 
@@ -1036,4 +1038,17 @@ Value* translation_unit::codegen()
 
     verifyModule(*module);
     module->dump();
+
+    string fn = filename;
+    size_t pos = fn.find('/');
+    if (pos != fn.npos)
+        fn = fn.substr(pos + 1);
+    pos = fn.find('.');
+    if (pos != fn.npos)
+        fn = fn.substr(0, pos);
+    fn += ".ll";
+
+    error_code EC;
+    raw_fd_ostream stream(fn, EC, sys::fs::OpenFlags::F_Text);
+    module->print(stream, nullptr);
 }
