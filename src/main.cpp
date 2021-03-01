@@ -1,5 +1,7 @@
 #include <iostream>
 #include "parser.h"
+#include "llvm/Support/Signals.h"
+#include "llvm/Support/PrettyStackTrace.h"
 using namespace std;
 
 int task_b(const char* filename)
@@ -19,7 +21,7 @@ int task_b(const char* filename)
     return failure ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
-int task_cde(const char* filename, bool print)
+int task_cdef(const char* filename, bool print, bool compile)
 {
     vector<token> tokens = tokenize_file(filename);
     for (auto tok : tokens)
@@ -38,6 +40,8 @@ int task_cde(const char* filename, bool print)
         translation_unit* tu = parser(tokens).parse();
         if (print)
             tu->print();
+        if (compile)
+            tu->codegen();
         delete tu;
     }
     catch (const error& e)
@@ -48,21 +52,25 @@ int task_cde(const char* filename, bool print)
     return EXIT_SUCCESS;
 }
 
-int main(int args, char **argv)
+int main(int argc, char **argv)
 {
-    if (args != 3)
+    if (argc != 3)
     {
         cerr << "program takes file name";
         return EXIT_FAILURE;
     }
 
+    sys::PrintStackTraceOnErrorSignal(argv[0]);
+    PrettyStackTraceProgram X(argc, argv);
+
     string opt = argv[1];
     if (opt == "--tokenize")
         return task_b(argv[2]);
     if (opt == "--parse")
-        return task_cde(argv[2], false);
+        return task_cdef(argv[2], false, false);
     if (opt == "--print-ast")
-        return task_cde(argv[2], true);
-
+        return task_cdef(argv[2], true, false);
+    if (opt == "--compile")
+        return task_cdef(argv[2], false, true);
     return EXIT_FAILURE;
 }

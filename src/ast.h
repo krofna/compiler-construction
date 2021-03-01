@@ -1,6 +1,8 @@
 #pragma once
 #include "error.h"
 #include <map>
+#include "llvm/IR/IRBuilder.h"
+using namespace llvm;
 
 struct node
 {
@@ -21,6 +23,7 @@ struct function_object : object
 
 struct variable_object : object
 {
+    AllocaInst* alloca = nullptr;
 };
 
 struct tag
@@ -62,6 +65,7 @@ struct builtin_type_specifier : type_specifier
 {
     void print();
     virtual bool is_void();
+
     token tok;
 };
 
@@ -200,14 +204,9 @@ struct declarator
 
 struct declaration
 {
+    ~declaration();
     void print();
-
-    ~declaration()
-    {
-        delete ds;
-        for (declarator* d : d)
-            delete d;
-    }
+    Value* codegen();
 
     declaration_specifiers* ds;
     vector<declarator*> d;
@@ -217,7 +216,10 @@ struct expression;
 
 struct primary_expression
 {
+    virtual ~primary_expression();
     virtual void print();
+    virtual Value* make_lvalue();
+    virtual Value* make_rvalue();
 
     object* var = nullptr;
     token tok;
@@ -225,17 +227,20 @@ struct primary_expression
 
 struct parenthesized_expression : primary_expression
 {
-    virtual ~parenthesized_expression()
-    {
-    }
+    ~parenthesized_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     expression* expr;
 };
 
 struct postfix_expression
 {
+    virtual ~postfix_expression();
     virtual void print();
+    virtual Value* make_lvalue();
+    virtual Value* make_rvalue();
 
     postfix_expression* pfe = nullptr;
     primary_expression* pe = nullptr;
@@ -243,7 +248,10 @@ struct postfix_expression
 
 struct subscript_expression : postfix_expression
 {
+    ~subscript_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     expression* expr;
 };
@@ -252,7 +260,10 @@ struct assignment_expression;
 
 struct call_expression : postfix_expression
 {
+    ~call_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     vector<assignment_expression*> args;
 };
@@ -260,6 +271,8 @@ struct call_expression : postfix_expression
 struct dot_expression : postfix_expression
 {
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     token id;
 };
@@ -267,6 +280,8 @@ struct dot_expression : postfix_expression
 struct arrow_expression : postfix_expression
 {
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     token id;
 };
@@ -274,30 +289,43 @@ struct arrow_expression : postfix_expression
 struct postfix_increment_expression : postfix_expression
 {
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 };
 
 struct postfix_decrement_expression : postfix_expression
 {
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 };
 
 struct unary_expression
 {
+    virtual ~unary_expression();
     virtual void print();
+    virtual Value* make_lvalue();
+    virtual Value* make_rvalue();
 
     postfix_expression* pe = nullptr;
 };
 
 struct prefix_increment_expression : unary_expression
 {
+    ~prefix_increment_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     unary_expression* ue;
 };
 
 struct prefix_decrement_expression : unary_expression
 {
+    ~prefix_decrement_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     unary_expression* ue;
 };
@@ -306,63 +334,90 @@ struct cast_expression;
 
 struct unary_and_expression : unary_expression
 {
+    ~unary_and_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     cast_expression* ce;
 };
 
 struct unary_star_expression : unary_expression
 {
+    ~unary_star_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     cast_expression* ce;
 };
 
 struct unary_plus_expression : unary_expression
 {
+    ~unary_plus_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     cast_expression* ce;
 };
 
 struct unary_minus_expression : unary_expression
 {
+    ~unary_minus_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     cast_expression* ce;
 };
 
 struct unary_tilde_expression : unary_expression
 {
+    ~unary_tilde_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     cast_expression* ce;
 };
 
 struct unary_not_expression : unary_expression
 {
+    ~unary_not_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     cast_expression* ce;
 };
 
 struct sizeof_expression : unary_expression
 {
+    ~sizeof_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     unary_expression* ue;
 };
 
 struct sizeof_type_expression : unary_expression
 {
+    ~sizeof_type_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     type_name* tn;
 };
 
 struct cast_expression
 {
+    ~cast_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     unary_expression* ue = nullptr;
     type_name* tn = nullptr;
@@ -371,14 +426,20 @@ struct cast_expression
 
 struct multiplicative_expression
 {
+    virtual ~multiplicative_expression();
     virtual void print();
+    virtual Value* make_lvalue();
+    virtual Value* make_rvalue();
 
     cast_expression* ce = nullptr;
 };
 
 struct mul_expression : multiplicative_expression
 {
+    ~mul_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     multiplicative_expression* lhs;
     cast_expression* rhs;
@@ -386,7 +447,10 @@ struct mul_expression : multiplicative_expression
 
 struct div_expression : multiplicative_expression
 {
+    ~div_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     multiplicative_expression* lhs;
     cast_expression* rhs;
@@ -394,7 +458,10 @@ struct div_expression : multiplicative_expression
 
 struct mod_expression : multiplicative_expression
 {
+    ~mod_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     multiplicative_expression* lhs;
     cast_expression* rhs;
@@ -402,14 +469,20 @@ struct mod_expression : multiplicative_expression
 
 struct additive_expression
 {
+    virtual ~additive_expression();
     virtual void print();
+    virtual Value* make_lvalue();
+    virtual Value* make_rvalue();
 
-    multiplicative_expression* me;
+    multiplicative_expression* me = nullptr;
 };
 
 struct add_expression : additive_expression
 {
+    ~add_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     additive_expression* lhs;
     multiplicative_expression* rhs;
@@ -417,7 +490,10 @@ struct add_expression : additive_expression
 
 struct sub_expression : additive_expression
 {
+    ~sub_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     additive_expression* lhs;
     multiplicative_expression* rhs;
@@ -425,14 +501,20 @@ struct sub_expression : additive_expression
 
 struct shift_expression
 {
+    virtual ~shift_expression();
     virtual void print();
+    virtual Value* make_lvalue();
+    virtual Value* make_rvalue();
 
-    additive_expression* ae;
+    additive_expression* ae = nullptr;
 };
 
 struct rshift_expression : shift_expression
 {
+    ~rshift_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     shift_expression* lhs;
     additive_expression* rhs;
@@ -440,7 +522,10 @@ struct rshift_expression : shift_expression
 
 struct lshift_expression : shift_expression
 {
+    ~lshift_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     shift_expression* lhs;
     additive_expression* rhs;
@@ -448,14 +533,20 @@ struct lshift_expression : shift_expression
 
 struct relational_expression
 {
+    virtual ~relational_expression();
     virtual void print();
+    virtual Value* make_lvalue();
+    virtual Value* make_rvalue();
 
-    shift_expression* se;
+    shift_expression* se = nullptr;
 };
 
 struct less_expression : relational_expression
 {
+    ~less_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     relational_expression* lhs;
     shift_expression* rhs;
@@ -463,7 +554,10 @@ struct less_expression : relational_expression
 
 struct greater_expression : relational_expression
 {
+    ~greater_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     relational_expression* lhs;
     shift_expression* rhs;
@@ -471,7 +565,10 @@ struct greater_expression : relational_expression
 
 struct less_equal_expression : relational_expression
 {
+    ~less_equal_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     relational_expression* lhs;
     shift_expression* rhs;
@@ -479,7 +576,10 @@ struct less_equal_expression : relational_expression
 
 struct greater_equal_expression : relational_expression
 {
+    ~greater_equal_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     relational_expression* lhs;
     shift_expression* rhs;
@@ -487,14 +587,20 @@ struct greater_equal_expression : relational_expression
 
 struct equality_expression
 {
+    virtual ~equality_expression();
     virtual void print();
+    virtual Value* make_lvalue();
+    virtual Value* make_rvalue();
 
-    relational_expression* re;
+    relational_expression* re = nullptr;
 };
 
 struct equal_expression : equality_expression
 {
+    ~equal_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     equality_expression* lhs;
     relational_expression* rhs;
@@ -502,7 +608,10 @@ struct equal_expression : equality_expression
 
 struct not_equal_expression : equality_expression
 {
+    ~not_equal_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     equality_expression* lhs;
     relational_expression* rhs;
@@ -510,7 +619,10 @@ struct not_equal_expression : equality_expression
 
 struct and_expression
 {
+    ~and_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     equality_expression* ee = nullptr;
     and_expression* lhs = nullptr;
@@ -519,7 +631,10 @@ struct and_expression
 
 struct exclusive_or_expression
 {
+    ~exclusive_or_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     and_expression* ae = nullptr;
     exclusive_or_expression* lhs = nullptr;
@@ -528,7 +643,10 @@ struct exclusive_or_expression
 
 struct inclusive_or_expression
 {
+    ~inclusive_or_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     exclusive_or_expression* xe = nullptr;
     inclusive_or_expression* lhs = nullptr;
@@ -537,7 +655,10 @@ struct inclusive_or_expression
 
 struct logical_and_expression
 {
+    ~logical_and_expression();
     void print();
+    Value* make_rvalue();
+    Value* make_lvalue();
 
     inclusive_or_expression* oe = nullptr;
     logical_and_expression* lhs = nullptr;
@@ -546,8 +667,11 @@ struct logical_and_expression
 
 struct logical_or_expression
 {
+    ~logical_or_expression();
     void print();
-
+    Value* make_lvalue();
+    Value* make_rvalue();
+    
     logical_and_expression* ae = nullptr;
     logical_or_expression* lhs = nullptr;
     logical_and_expression* rhs = nullptr;
@@ -555,7 +679,10 @@ struct logical_or_expression
 
 struct conditional_expression
 {
+    ~conditional_expression();
     void print();
+    Value* make_lvalue();
+    Value* make_rvalue();
 
     logical_or_expression* oe = nullptr;
     logical_or_expression* expr1 = nullptr;
@@ -565,8 +692,11 @@ struct conditional_expression
 
 struct assignment_expression
 {
+    ~assignment_expression();
     void print();
-
+    Value* make_lvalue();
+    Value* make_rvalue();
+    
     conditional_expression* lhs = nullptr;
     token op;
     assignment_expression* rhs = nullptr;
@@ -574,30 +704,36 @@ struct assignment_expression
 
 struct constant_expression
 {
+    ~constant_expression();
     void print();
+    Value* make_rvalue();
+    Value* make_lvalue();
 
     conditional_expression* ce;
 };
 
 struct expression
 {
+    ~expression();
     void print();
+    Value* make_rvalue();
+    Value* make_lvalue();
 
     vector<assignment_expression*> ae;
 };
 
 struct statement
 {
-    virtual ~statement()
-    {
-    }
-
+    virtual ~statement() = 0;
+    virtual Value* codegen() = 0;
     virtual void print() = 0;
 };
 
 struct labeled_statement : statement
 {
+    virtual ~labeled_statement();
     virtual void print() = 0;
+    virtual Value* codegen() = 0;
 
     statement* stat;
 };
@@ -605,13 +741,16 @@ struct labeled_statement : statement
 struct goto_label : labeled_statement
 {
     void print();
+    virtual Value* codegen();
 
     token id;
 };
 
 struct case_label : labeled_statement
 {
+    ~case_label();
     void print();
+    virtual Value* codegen();
 
     constant_expression* ce;
 };
@@ -619,43 +758,57 @@ struct case_label : labeled_statement
 struct default_label : labeled_statement
 {
     void print();
+    virtual Value* codegen();
 };
 
 struct expression_statement : statement
 {
+    ~expression_statement();
     void print();
+    virtual Value* codegen();
 
     expression* expr = nullptr;
 };
 
 struct selection_statement : statement
 {
+    virtual ~selection_statement() = 0;
     virtual void print() = 0;
-
-    expression* expr;
-    statement* stat;
+    virtual Value* codegen() = 0;
 };
 
 struct if_statement : selection_statement
 {
+    ~if_statement();
     void print();
+    virtual Value* codegen();
 
+    expression* expr;
+    statement* stat;
     statement* estat = nullptr;
 };
 
 struct switch_statement : selection_statement
 {
     void print();
+    virtual Value* codegen();
+
+    expression* expr;
+    statement* stat;
 };
 
 struct iteration_statement : statement
 {
+    virtual ~iteration_statement() = 0;
     virtual void print() = 0;
+    virtual Value* codegen() = 0;
 };
 
 struct while_statement : iteration_statement
 {
+    ~while_statement();
     void print();
+    virtual Value* codegen();
 
     expression* expr;
     statement* stat;
@@ -663,7 +816,9 @@ struct while_statement : iteration_statement
 
 struct do_while_statement : iteration_statement
 {
+    ~do_while_statement();
     void print();
+    virtual Value* codegen();
 
     statement* stat;
     expression* expr;
@@ -671,7 +826,9 @@ struct do_while_statement : iteration_statement
 
 struct for_statement : iteration_statement
 {
+    ~for_statement();
     void print();
+    virtual Value* codegen();
 
     expression* expr1;
     expression* expr2;
@@ -682,11 +839,13 @@ struct for_statement : iteration_statement
 struct jump_statement : statement
 {
     virtual void print() = 0;
+    virtual Value* codegen() = 0;
 };
 
 struct goto_statement : jump_statement
 {
     void print();
+    virtual Value* codegen();
 
     goto_label* gl;
     token id;
@@ -695,78 +854,68 @@ struct goto_statement : jump_statement
 struct continue_statement : jump_statement
 {
     void print();
+    virtual Value* codegen();
 };
 
 struct break_statement : jump_statement
 {
     void print();
+    virtual Value* codegen();
 };
 
 struct return_statement : jump_statement
 {
-    ~return_statement()
-    {
-        delete expr;
-    }
+    ~return_statement();
     void print();
+    virtual Value* codegen();
 
     expression* expr;
 };
 
 struct block_item
 {
-    virtual ~block_item()
-    {
-    }
+    virtual ~block_item() = 0;
     virtual void print() = 0;
+    virtual Value* codegen() = 0;
 };
 
 struct declaration_item : block_item
 {
-    ~declaration_item()
-    {
-        delete decl;
-    }
+    ~declaration_item();
     void print();
+    Value* codegen();
 
     declaration* decl;
 };
 
 struct statement_item : block_item
 {
-    ~statement_item()
-    {
-        delete stat;
-    }
+    ~statement_item();
     void print();
+    Value* codegen();
 
     statement* stat;
 };
 
 struct compound_statement : statement
 {
-    ~compound_statement()
-    {
-        delete sc;
-        for (block_item* i : bi)
-            delete i;
-    }
+    ~compound_statement();
     void print();
+    virtual Value* codegen();
 
-    scope* sc;
+    scope* sc = nullptr;
     vector<block_item*> bi;
 };
 
 struct function_definition
 {
-    ~function_definition()
-    {
-        delete ds;
-        delete dec;
-        delete cs;
-    }
+    ~function_definition();
     void print();
+    Value* codegen();
 
+    token get_identifier();
+
+    scope* sc;
     declaration_specifiers* ds;
     declarator* dec;
     compound_statement* cs;
@@ -774,7 +923,9 @@ struct function_definition
 
 struct external_declaration
 {
+    ~external_declaration();
     void print();
+    Value* codegen();
 
     function_definition* fd = nullptr;
     declaration* decl = nullptr;
@@ -782,14 +933,20 @@ struct external_declaration
 
 struct translation_unit
 {
-    ~translation_unit()
-    {
-        delete sc;
-        for (external_declaration* d : ed)
-            delete d;
-    }
+    ~translation_unit();
     void print();
+    Value* codegen();
 
     scope* sc;
     vector<external_declaration*> ed;
 };
+
+object* find_var(const string& id);
+variable_object* find_variable(const string& id);
+tag* find_tag(const string& id);
+void register_type(type_specifier* ts);
+void resolve_gotos();
+
+extern vector<scope*> scopes;
+extern vector<goto_statement*> gotos;
+extern map<string, goto_label*> labels;

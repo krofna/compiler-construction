@@ -19,4 +19,9 @@ struct error : std::runtime_error
     {
         throw error(tok);
     }
+
+    static void reject()
+    {
+        throw error(token());
+    }
 };

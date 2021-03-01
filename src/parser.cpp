@@ -1150,7 +1150,7 @@ function_definition* parser::parse_function_definition()
     function_definition* fd = new function_definition;
     fd->ds = accept(parse_declaration_specifiers());
     register_type(fd->ds->ts);
-    scopes.push_back(new scope);
+    scopes.push_back(fd->sc = new scope);
     fd->dec = accept(parse_declarator());
 
     declarator* decl = fd->dec->unparenthesize();
@@ -1158,7 +1158,7 @@ function_definition* parser::parse_function_definition()
     if (!fdecl)
         error::reject(decl->dd->get_identifier()); // nije funkcija
 
-    token identifier = fd->dec->get_identifier();
+    token identifier = fd->get_identifier();
 
     // check return type
     if (!decl->p)
