@@ -14,6 +14,9 @@ Type *make_builtin(builtin_type_specifier* bts)
 
 StructType *make_struct(struct_or_union_specifier* sus)
 {
+    if (tag* t = find_tag(sus->id.str))
+        return t->type;
+
     StructType *type = StructType::create(context);
     vector<Type*> members;
     for (struct_declaration* sd : sus->sds)
