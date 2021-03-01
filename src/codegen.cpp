@@ -1037,7 +1037,6 @@ Value* translation_unit::codegen(const char* filename)
     scopes.pop_back();
 
     verifyModule(*module);
-    module->dump();
 
     string fn = filename;
     size_t pos = fn.find('/');
