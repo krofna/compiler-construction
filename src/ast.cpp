@@ -461,8 +461,12 @@ int pointer::num_pointers()
 
 int declarator::num_pointers()
 {
-    int num = p ? p->num_pointers() : 0;
-    return num + dd->num_pointers();
+    int num = 0;
+    if (p)
+        num += p->num_pointers();
+    if (dd)
+        num += dd->num_pointers();
+    return num;
 }
 
 bool builtin_type_specifier::is_void()

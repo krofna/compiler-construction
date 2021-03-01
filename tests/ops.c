@@ -8,7 +8,7 @@ struct s_t
     char *ptr;
 } obj;
 
-int puts(char* str);
+int puts(char*);
 
 int main(void)
 {

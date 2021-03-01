@@ -164,7 +164,6 @@ struct parameter_declaration
 
     declaration_specifiers* ds;
     declarator* decl = nullptr;
-    declarator* ad = nullptr;
 };
 
 struct function_declarator : direct_declarator

@@ -137,11 +137,9 @@ void parameter_declaration::print()
     ds->print();
     if (decl)
     {
-        pout << " ";
+        pout << " "; // todo: ??
         decl->print();
     }
-    if (ad)
-        ad->print();
 }
 
 void function_declarator::print()

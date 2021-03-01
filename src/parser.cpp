@@ -779,10 +779,17 @@ direct_declarator* parser::parse_nof_direct_declarator()
         dd->tok = parse_identifier();
         return dd;
     }
+    token_iter old = tokit;
     if (check("("))
     {
         parenthesized_declarator* pd = new parenthesized_declarator;
-        pd->decl = accept(parse_declarator());
+        pd->decl = parse_declarator();
+        if (!pd->decl)
+        {
+            tokit = old;
+            delete pd;
+            return nullptr;
+        }
         accepts(")");
         return pd;
     }
@@ -915,7 +922,7 @@ parameter_declaration* parser::parse_parameter_declaration()
         if (declarator* decl = parse_declarator())
             pd->decl = decl;
         else
-            pd->ad = parse_abstract_declarator();
+            pd->decl = parse_abstract_declarator();
         return pd;
     }
     return nullptr;
@@ -1182,7 +1189,7 @@ function_definition* parser::parse_function_definition()
     // function with no parameters
     if (fdecl->is_noparam())
     {
-        if (fdecl->pl.front()->ad || fdecl->pl.front()->decl)
+        if (fdecl->pl.front()->decl)
             reject();
     }
     // function with parameters

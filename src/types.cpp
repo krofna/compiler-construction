@@ -47,7 +47,7 @@ Type *make_noptr_type(type_specifier* ts)
 Type *make_type(type_specifier* ts, declarator* de)
 {
     Type *type = make_noptr_type(ts);
-    type = make_ptr(type, de);
+    if (de) type = make_ptr(type, de);
     return type;
 }
 
