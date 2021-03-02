@@ -1099,8 +1099,14 @@ Value* function_definition::codegen()
 
     cs->codegen();
 
-    // todo: ovo samo za main
-    builder->CreateRet(builder->getInt32(0));
+    if (!builder->GetInsertBlock()->getTerminator())
+    {
+        Type *ret_type = builder->getCurrentFunctionReturnType();
+        if (ret_type->isVoidTy())
+            builder->CreateRetVoid();
+        else
+            builder->CreateRet(Constant::getNullValue(ret_type));
+    }
 
     // todo dead return
     verifyFunction(*fo->function);
