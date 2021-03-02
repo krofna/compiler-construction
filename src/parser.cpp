@@ -820,7 +820,14 @@ vector<parameter_declaration*> parser::parse_parameter_type_list()
     {
         pl.push_back(pd);
         while (check(","))
+        {
+            if (check("..."))
+            {
+                pl.push_back(nullptr);
+                return pl;
+            }
             pl.push_back(accept(parse_parameter_declaration()));
+        }
     }
     return pl;
 }
@@ -1197,6 +1204,10 @@ function_definition* parser::parse_function_definition()
     {
         for (parameter_declaration* pard : fdecl->pl)
         {
+            // vararg
+            if (!pard)
+                continue;
+
             if (!pard->decl)
                 reject();
 

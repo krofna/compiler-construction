@@ -56,10 +56,16 @@ FunctionType *make_function(type_specifier* ts, declarator* de)
     vector<Type*> arguments;
     declarator* decl = de->unparenthesize();
     function_declarator* fd = dynamic_cast<function_declarator*>(decl->dd);
+    bool vararg = false;
     if (!fd->is_noparam())
     {
         for (parameter_declaration *pd : fd->pl)
-            arguments.push_back(make_type(pd->ds->ts, pd->decl));
+        {
+            if (pd)
+                arguments.push_back(make_type(pd->ds->ts, pd->decl));
+            else
+                vararg = true;
+        }
     }
-    return FunctionType::get(make_type(ts, de), arguments, false);
+    return FunctionType::get(make_type(ts, de), arguments, vararg);
 }

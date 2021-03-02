@@ -153,7 +153,10 @@ void function_declarator::print()
         if (flg)
             pout << ", ";
         flg = true;
-        pd->print();
+        if (!pd)
+            pout << "...";
+        else
+            pd->print();
     }
     pout << ")";
     pout << ")";

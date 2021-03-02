@@ -136,6 +136,7 @@ struct function_specifier
 
 struct direct_declarator
 {
+    virtual ~direct_declarator() {}
     virtual void print();
     virtual token get_identifier();
     virtual bool is_definition(); // is function pointer
