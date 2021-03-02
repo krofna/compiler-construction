@@ -130,10 +130,17 @@ Value* postfix_expression::make_lvalue()
 
 Value* subscript_expression::make_rvalue()
 {
+    Value *ptr = make_lvalue();
+    return builder->CreateLoad(ptr);
 }
 
 Value* subscript_expression::make_lvalue()
 {
+    Value *l = pfe->make_lvalue();
+    vector<Value*> indices;
+    indices.push_back(builder->getInt32(0));
+    indices.push_back(expr->make_rvalue());
+    return builder->CreateInBoundsGEP(l, indices);
 }
 
 Value* call_expression::make_rvalue()
@@ -145,25 +152,69 @@ Value* call_expression::make_rvalue()
     return builder->CreateCall((Function*)pfe->make_rvalue(), cargs);
 }
 
+// TODO: forbid this nonsense
 Value* call_expression::make_lvalue()
 {
-    error::reject();
+    vector<Value*> cargs;
+    for (assignment_expression* ae : args)
+        cargs.push_back(ae->make_rvalue());
+
+    Value *val = builder->CreateCall((Function*)pfe->make_rvalue(), cargs);
+    Value *alloca = create_alloca(val->getType(), "tmp");
+    builder->CreateStore(val, alloca);
+    return alloca;
 }
 
 Value* dot_expression::make_rvalue()
 {
+    Value *ptr = make_lvalue();
+    return builder->CreateLoad(ptr);
 }
 
 Value* dot_expression::make_lvalue()
 {
+    Value *l = pfe->make_lvalue();
+    Type *type = l->getType()->getContainedType(0);
+    if (!type->isStructTy())
+        error::reject();
+
+    StructType *stype = (StructType*)type;
+    extern map<string, tag*> htags;
+    tag *t = htags[stype->getName().str()];
+    auto it = t->indices.find(id.str);
+    if (it == t->indices.end())
+        error::reject(id);
+
+    vector<Value*> indices;
+    indices.push_back(builder->getInt32(0));
+    indices.push_back(builder->getInt32(it->second));
+    return builder->CreateInBoundsGEP(l, indices);
 }
 
 Value* arrow_expression::make_rvalue()
 {
+    Value *ptr = make_lvalue();
+    return builder->CreateLoad(ptr);
 }
 
 Value* arrow_expression::make_lvalue()
 {
+    Value *l = pfe->make_rvalue();
+    Type *type = l->getType()->getContainedType(0);
+    if (!type->isStructTy())
+        error::reject();
+
+    StructType *stype = (StructType*)type;
+    extern map<string, tag*> htags;
+    tag *t = htags[stype->getName().str()];
+    auto it = t->indices.find(id.str);
+    if (it == t->indices.end())
+        error::reject(id);
+
+    vector<Value*> indices;
+    indices.push_back(builder->getInt32(0));
+    indices.push_back(builder->getInt32(it->second));
+    return builder->CreateInBoundsGEP(l, indices);
 }
 
 Value* postfix_increment_expression::make_rvalue()

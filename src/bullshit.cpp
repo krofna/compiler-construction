@@ -5,6 +5,8 @@ extern LLVMContext context;
 vector<scope*> scopes;
 vector<goto_statement*> gotos;
 map<string, goto_label*> labels;
+map<string, tag*> htags;
+int tag_counter;
 
 void resolve_gotos()
 {
@@ -42,6 +44,26 @@ function_object* find_function(const string& id)
     return dynamic_cast<function_object*>(find_var(id));
 }
 
+tag::tag(struct_or_union_specifier* ss)
+{
+    type = StructType::create(context, h = to_string(tag_counter++));
+    vector<Type*> members;
+    for (struct_declaration* sd : ss->sds)
+    {
+        for (declarator* dec : sd->ds)
+        {
+            token tok = dec->get_identifier();
+            if (indices.find(tok.str) != indices.end())
+                error::reject(tok);
+
+            int next = indices.size();
+            indices[tok.str] = next;
+            members.push_back(make_type(sd->ts, dec));
+        }
+    }
+    type->setBody(members);
+}
+
 tag* find_tag(const string& id)
 {
     for (auto i = scopes.rbegin(); i != scopes.rend(); ++i)
@@ -69,18 +91,7 @@ void register_type(type_specifier* ts)
         error::reject(ss->id); // redefinicija
 
     // definicija
-    tag *t = new tag;
-    t->type = make_struct(ss);
+    tag *t = new tag(ss);
     table[ss->id.str] = t;
-
-    for (struct_declaration* sd : ss->sds)
-    {
-        for (declarator* dec : sd->ds)
-        {
-            token tok = dec->get_identifier();
-            if (t->s.find(tok.str) != t->s.end())
-                error::reject(tok);
-            t->s.insert(tok.str);
-        }
-    }
+    htags[t->h] = t;
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include "error.h"
 #include <map>
-#include <set>
 #include "llvm/IR/IRBuilder.h"
 using namespace llvm;
 
@@ -25,8 +24,6 @@ struct function_object : object
     bool is_defined;
 };
 
-struct type_specifier;
-struct declarator;
 
 struct variable_object : object
 {
@@ -35,9 +32,14 @@ struct variable_object : object
     Type *type = nullptr;
 };
 
+struct struct_or_union_specifier;
+
 struct tag
 {
-    set<string> s;
+    tag(struct_or_union_specifier* sus);
+
+    string h; // h stands for i Hate this course
+    map<string, int> indices;
     StructType *type;
 };
 
@@ -672,7 +674,7 @@ struct logical_or_expression
     void print();
     Value* make_lvalue();
     Value* make_rvalue();
-    
+
     logical_and_expression* ae = nullptr;
     logical_or_expression* lhs = nullptr;
     logical_and_expression* rhs = nullptr;
@@ -697,7 +699,7 @@ struct assignment_expression
     void print();
     Value* make_lvalue();
     Value* make_rvalue();
-    
+
     conditional_expression* lhs = nullptr;
     token op;
     assignment_expression* rhs = nullptr;
