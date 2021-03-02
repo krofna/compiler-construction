@@ -197,6 +197,7 @@ struct declarator
     bool is_pointer();
     declarator* unparenthesize();
     int num_pointers();
+    Value* codegen();
 
     pointer* p = nullptr;
     direct_declarator* dd;

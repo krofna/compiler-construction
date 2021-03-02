@@ -32,30 +32,35 @@ static Value *create_variable(Type *type, const string &var_name)
     return create_alloca(type, var_name);
 }
 
-Value* declaration::codegen()
+Value* declarator::codegen()
 {
     // todo: function pointer
-    for (declarator* de : d)
+    string identifier = get_identifier().str;
+    if (dd->is_identifier() || dd->is_definition())
     {
-        string identifier = de->get_identifier().str;
-        if (de->dd->is_identifier() || de->dd->is_definition())
-        {
-            variable_object* vo = find_variable(identifier);
-            vo->store = create_variable(vo->type, identifier);
-        }
-        else
-        {
-            function_object* fo = find_function(identifier);
-            if (!fo->function)
-            {
-                fo->function = Function::Create(
-                    fo->type,
-                    GlobalValue::ExternalLinkage,
-                    identifier.c_str(),
-                    *module);
-            }
-        }
+        variable_object* vo = find_variable(identifier);
+        vo->store = create_variable(vo->type, identifier);
+        return vo->store;
     }
+    else
+    {
+        function_object* fo = find_function(identifier);
+        if (!fo->function)
+        {
+            fo->function = Function::Create(
+                fo->type,
+                GlobalValue::ExternalLinkage,
+                identifier.c_str(),
+                *module);
+        }
+        return fo->function;
+    }
+}
+
+Value* declaration::codegen()
+{
+    for (declarator* de : d)
+        de->codegen();
 }
 
 Value* primary_expression::make_lvalue()
@@ -137,7 +142,7 @@ Value* call_expression::make_rvalue()
     for (assignment_expression* ae : args)
         cargs.push_back(ae->make_rvalue());
 
-    builder->CreateCall((Function*)pfe->make_rvalue(), cargs);
+    return builder->CreateCall((Function*)pfe->make_rvalue(), cargs);
 }
 
 Value* call_expression::make_lvalue()
@@ -968,6 +973,15 @@ Value* return_statement::codegen()
     {
         builder->CreateRetVoid();
     }
+
+    Function *function = builder->GetInsertBlock()->getParent();
+    BasicBlock *dead_block = BasicBlock::Create(
+        context,
+        "DEAD_BLOCK",
+        function,
+        0);
+
+    builder->SetInsertPoint(dead_block);
 }
 
 Value* declaration_item::codegen()
@@ -994,7 +1008,7 @@ Value* function_definition::codegen()
 
     function_object *fo = find_function(get_identifier().str);
 
-    Function *function = Function::Create(
+    fo->function = Function::Create(
         fo->type,
         GlobalValue::ExternalLinkage,
         get_identifier().str,
@@ -1003,16 +1017,27 @@ Value* function_definition::codegen()
     BasicBlock *entry_block = BasicBlock::Create(
         context,
         "entry",
-        function,
+        fo->function,
         0);
 
     builder->SetInsertPoint(entry_block);
     alloca_builder->SetInsertPoint(entry_block);
 
+    Function::arg_iterator arg_iter = fo->function->arg_begin();
+    declarator* decl = dec->unparenthesize();
+    function_declarator* fdecl = dynamic_cast<function_declarator*>(decl->dd);
+    for (parameter_declaration* pard : fdecl->pl)
+    {
+        if (pard && pard->decl)
+        {
+            // todo: decl should be object with storage not function declaration
+            Value *val = pard->decl->codegen();
+            builder->CreateStore(arg_iter, val);
+            arg_iter++;
+        }
+    }
 
     // BasicBlock *goto_block = BasicBlock::Create(context, "goto", function);
-
-    // todo: pohrani parametre na stack
 
     cs->codegen();
 
@@ -1020,10 +1045,10 @@ Value* function_definition::codegen()
     builder->CreateRet(builder->getInt32(0));
 
     // todo dead return
-    verifyFunction(*function);
+    verifyFunction(*fo->function);
 
     scopes.pop_back();
-    return function;
+    return fo->function;
 }
 
 Value* external_declaration::codegen()
