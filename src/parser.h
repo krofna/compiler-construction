@@ -35,6 +35,14 @@ private:
         return str;
     }
 
+    token prev_token()
+    {
+        tokit--;
+        token tok = *tokit;
+        tokit++;
+        return tok;
+    }
+
     bool check(const string& what)
     {
         if (tokit->str != what && tokit->str != get_digraph(what))

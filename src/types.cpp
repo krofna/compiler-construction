@@ -10,6 +10,8 @@ Type *make_builtin(builtin_type_specifier* bts)
         return IntegerType::get(context, 8);
     else if (bts->tok.str == "void")
         return IntegerType::get(context, 8);
+    else if (bts->tok.str == "long")
+        return IntegerType::get(context, 64);
     assert(false);
 }
 
@@ -39,8 +41,8 @@ Type *make_type(type_specifier* ts, declarator* de)
 FunctionType *make_function(type_specifier* ts, declarator* de)
 {
     vector<Type*> arguments;
-    declarator* decl = de->unparenthesize();
-    function_declarator* fd = dynamic_cast<function_declarator*>(decl->dd);
+    de = de->unparenthesize();
+    function_declarator* fd = dynamic_cast<function_declarator*>(de->dd);
     bool vararg = false;
     if (!fd->is_noparam())
     {

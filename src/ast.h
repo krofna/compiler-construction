@@ -245,6 +245,7 @@ struct postfix_expression
     virtual Value* make_lvalue();
     virtual Value* make_rvalue();
 
+    token op;
     postfix_expression* pfe = nullptr;
     primary_expression* pe = nullptr;
 };

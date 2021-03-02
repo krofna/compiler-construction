@@ -78,6 +78,7 @@ postfix_expression* parser::parse_postfix_expression()
         else if (check("."))
         {
             dot_expression* de = new dot_expression;
+            de->op = prev_token();
             de->pfe = e;
             de->id = parse_identifier();
             e = de;
@@ -85,6 +86,7 @@ postfix_expression* parser::parse_postfix_expression()
         else if (check("->"))
         {
             arrow_expression* ae = new arrow_expression;
+            ae->op = prev_token();
             ae->pfe = e;
             ae->id = parse_identifier();
             e = ae;
@@ -92,12 +94,14 @@ postfix_expression* parser::parse_postfix_expression()
         else if (check("++"))
         {
             postfix_increment_expression* ie = new postfix_increment_expression;
+            ie->op = prev_token();
             ie->pfe = e;
             e = ie;
         }
         else if (check("--"))
         {
             postfix_decrement_expression* de = new postfix_decrement_expression;
+            de->op = prev_token();
             de->pfe = e;
             e = de;
         }

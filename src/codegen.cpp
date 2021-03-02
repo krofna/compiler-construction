@@ -136,9 +136,8 @@ Value* subscript_expression::make_rvalue()
 
 Value* subscript_expression::make_lvalue()
 {
-    Value *l = pfe->make_lvalue();
+    Value *l = pfe->make_rvalue();
     vector<Value*> indices;
-    indices.push_back(builder->getInt32(0));
     indices.push_back(expr->make_rvalue());
     return builder->CreateInBoundsGEP(l, indices);
 }
@@ -174,9 +173,13 @@ Value* dot_expression::make_rvalue()
 Value* dot_expression::make_lvalue()
 {
     Value *l = pfe->make_lvalue();
-    Type *type = l->getType()->getContainedType(0);
+    Type *type = l->getType();
+    if (type->getNumContainedTypes() != 1)
+        error::reject(op);
+
+    type = type->getContainedType(0);
     if (!type->isStructTy())
-        error::reject();
+        error::reject(op);
 
     StructType *stype = (StructType*)type;
     extern map<string, tag*> htags;
@@ -200,9 +203,13 @@ Value* arrow_expression::make_rvalue()
 Value* arrow_expression::make_lvalue()
 {
     Value *l = pfe->make_rvalue();
-    Type *type = l->getType()->getContainedType(0);
+    Type *type = l->getType();
+    if (type->getNumContainedTypes() != 1)
+        error::reject(op);
+
+    type = type->getContainedType(0);
     if (!type->isStructTy())
-        error::reject();
+        error::reject(op);
 
     StructType *stype = (StructType*)type;
     extern map<string, tag*> htags;
@@ -228,7 +235,7 @@ Value* postfix_increment_expression::make_rvalue()
 
 Value* postfix_increment_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* postfix_decrement_expression::make_rvalue()
@@ -242,7 +249,7 @@ Value* postfix_decrement_expression::make_rvalue()
 
 Value* postfix_decrement_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* unary_expression::make_rvalue()
