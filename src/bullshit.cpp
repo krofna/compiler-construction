@@ -3,8 +3,6 @@
 extern LLVMContext context;
 
 vector<scope*> scopes;
-vector<goto_statement*> gotos;
-map<string, goto_label*> labels;
 map<string, tag*> htags;
 int tag_counter;
 
@@ -68,7 +66,7 @@ Type* valid_type_specifier(vector<type_specifier*> tsps)
     return nullptr;
 }
 
-void resolve_gotos()
+void function_definition::resolve_gotos()
 {
     for (goto_statement* gs : gotos)
     {
@@ -78,8 +76,6 @@ void resolve_gotos()
 
         gs->gl = glp->second;
     }
-    gotos.clear();
-    labels.clear();
 }
 
 object* find_var(const string& id)
@@ -147,6 +143,9 @@ Type* register_type(struct_or_union_specifier* ss)
         else
             return it->second->type;
     }
+
+    if (!ss->has_sds)
+        return Type::getInt8Ty(context);
 
     // definicija
     tag *t = new tag(ss);

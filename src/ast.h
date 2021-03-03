@@ -213,7 +213,7 @@ struct declarator
     Value* codegen();
 
     pointer* p = nullptr;
-    direct_declarator* dd;
+    direct_declarator* dd = nullptr;
 };
 
 struct declaration
@@ -758,6 +758,7 @@ struct goto_label : labeled_statement
     void print();
     virtual Value* codegen();
 
+    BasicBlock *block;
     token id;
 };
 
@@ -862,7 +863,7 @@ struct goto_statement : jump_statement
     void print();
     virtual Value* codegen();
 
-    goto_label* gl;
+    goto_label *gl;
     token id;
 };
 
@@ -929,7 +930,10 @@ struct function_definition
     Value* codegen();
 
     token get_identifier();
+    void resolve_gotos();
 
+    vector<goto_statement*> gotos;
+    map<string, goto_label*> labels;
     scope* sc;
     declaration_specifiers* ds;
     declarator* dec;
@@ -961,8 +965,5 @@ variable_object* find_variable(const string& id);
 function_object* find_function(const string& id);
 tag* find_tag(const string& id);
 Type* register_type(struct_or_union_specifier* ss);
-void resolve_gotos();
 
 extern vector<scope*> scopes;
-extern vector<goto_statement*> gotos;
-extern map<string, goto_label*> labels;

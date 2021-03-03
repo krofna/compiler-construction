@@ -144,21 +144,33 @@ Value* subscript_expression::make_lvalue()
 
 Value* call_expression::make_rvalue()
 {
-    vector<Value*> cargs;
-    for (assignment_expression* ae : args)
-        cargs.push_back(ae->make_rvalue());
+    Value* lhs = pfe->make_rvalue();
+    Function *function = (Function*)lhs;
+    FunctionType *ftype = function->getFunctionType();
 
-    return builder->CreateCall((Function*)pfe->make_rvalue(), cargs);
+    if (ftype->params().size() != args.size())
+    {
+        if (ftype->params().size() > args.size())
+            error::reject();
+        if (!ftype->isVarArg())
+            error::reject();
+    }
+
+    vector<Value*> cargs;
+    for (int i = 0; i < args.size(); ++i)
+        cargs.push_back(args[i]->make_rvalue());
+
+    for (int i = 0; i < ftype->params().size(); ++i)
+        if (cargs[i]->getType() != ftype->params()[i])
+            error::reject();
+
+    return builder->CreateCall(function, cargs);
 }
 
 // TODO: forbid this nonsense
 Value* call_expression::make_lvalue()
 {
-    vector<Value*> cargs;
-    for (assignment_expression* ae : args)
-        cargs.push_back(ae->make_rvalue());
-
-    Value *val = builder->CreateCall((Function*)pfe->make_rvalue(), cargs);
+    Value *val = make_rvalue();
     Value *alloca = create_alloca(val->getType(), "tmp");
     builder->CreateStore(val, alloca);
     return alloca;
@@ -875,8 +887,9 @@ Value* expression::make_lvalue()
 
 Value* goto_label::codegen()
 {
-    // builder->CreateBr(goto_block);
-    // builder->SetInsertPoint(goto_block);
+    builder->CreateBr(block);
+    builder->SetInsertPoint(block);
+    stat->codegen();
 }
 
 Value* case_label::codegen()
@@ -1007,7 +1020,7 @@ Value* for_statement::codegen()
 
 Value* goto_statement::codegen()
 {
-    // builder->CreateBr(goto_block);
+    builder->CreateBr(gl->block);
 }
 
 Value* break_statement::codegen()
@@ -1095,7 +1108,8 @@ Value* function_definition::codegen()
         }
     }
 
-    // BasicBlock *goto_block = BasicBlock::Create(context, "goto", function);
+    for (auto& [id, lab] : labels)
+        lab->block = BasicBlock::Create(context, id, fo->function);
 
     cs->codegen();
 

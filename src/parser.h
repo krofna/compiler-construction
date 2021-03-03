@@ -19,6 +19,7 @@ private:
     vector<token>& tokens;
     token_iter tokit;
 
+    function_definition* current_function = nullptr;
     iteration_statement* current_loop = nullptr;
     switch_statement* current_switch = nullptr;
 

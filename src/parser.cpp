@@ -1036,6 +1036,8 @@ labeled_statement* parser::parse_labeled_statement()
         }
         goto_label* gl = new goto_label;
         gl->id = id;
+
+        auto& labels = current_function->labels;
         auto it = labels.find(id.str);
         if (it != labels.end())
             error::reject(id);
@@ -1194,7 +1196,7 @@ jump_statement* parser::parse_jump_statement()
         goto_statement* gs = new goto_statement;
         gs->id = parse_identifier();
         accepts(";");
-        gotos.push_back(gs);
+        current_function->gotos.push_back(gs);
         return gs;
     }
     if (check("continue"))
@@ -1227,7 +1229,7 @@ jump_statement* parser::parse_jump_statement()
 
 function_definition* parser::parse_function_definition()
 {
-    function_definition* fd = new function_definition;
+    function_definition* fd = current_function = new function_definition;
     fd->ds = accept(parse_declaration_specifiers());
     if (fd->ds->sus) fd->ds->type = register_type(fd->ds->sus);
     scopes.push_back(fd->sc = new scope(false));
@@ -1300,8 +1302,9 @@ function_definition* parser::parse_function_definition()
     }
 
     fd->cs = accept(parse_compound_statement(false));
-    resolve_gotos();
+    fd->resolve_gotos();
     scopes.pop_back();
+    current_function = nullptr;
     return fd;
 }
 
