@@ -2,6 +2,8 @@
 #include "parser.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/PrettyStackTrace.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/raw_ostream.h"
 using namespace std;
 
 int task_b(const char* filename)
@@ -38,10 +40,26 @@ int task_cdef(const char* filename, bool print, bool compile)
     try
     {
         translation_unit* tu = parser(tokens).parse();
+        if (compile)
+        {
+            tu->codegen(filename);
+
+            string fn = filename;
+            size_t pos = fn.find('/');
+            if (pos != fn.npos)
+                fn = fn.substr(pos + 1);
+            pos = fn.find('.');
+            if (pos != fn.npos)
+                fn = fn.substr(0, pos);
+            fn += ".ll";
+
+            error_code EC;
+            raw_fd_ostream stream(fn, EC, sys::fs::OpenFlags::F_Text);
+            extern unique_ptr<Module> module;
+            module->print(stream, nullptr);
+        }
         if (print)
             tu->print();
-        if (compile)
-            tu->codegen(filename);
         delete tu;
     }
     catch (const error& e)

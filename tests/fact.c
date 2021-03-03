@@ -17,3 +17,8 @@ int g(int x) {
     
     return mx;
 }
+
+int main(void)
+{
+    printf("%d %d", f(10), g(10));
+}

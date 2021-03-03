@@ -9,37 +9,37 @@ int tag_counter;
 Type* valid_type_specifier(vector<type_specifier*> tsps)
 {
     static const vector<pair<vector<vector<string>>, Type*>> valid = {
-        {{{"void"}}, (Type*)Type::getInt8Ty(context)},
-        {{{"char"}}, (Type*)Type::getInt8Ty(context)},
-        {{{"signed", "char"}}, (Type*)Type::getInt8Ty(context)},
-        {{{"unsigned", "char"}}, (Type*)Type::getInt8Ty(context)},
+        {{{"void"}}, Type::getInt8Ty(context)},
+        {{{"char"}}, Type::getInt8Ty(context)},
+        {{{"signed", "char"}}, Type::getInt8Ty(context)},
+        {{{"unsigned", "char"}}, Type::getInt8Ty(context)},
         {{{"short"},
           {"signed", "short"},
           {"short", "int"},
-          {"signed", "short", "int"}}, (Type*)Type::getInt16Ty(context)},
+          {"signed", "short", "int"}}, Type::getInt16Ty(context)},
         {{{"unsigned", "short"},
-          {"unsigned", "short", "int"}}, (Type*)Type::getInt16Ty(context)},
+          {"unsigned", "short", "int"}}, Type::getInt16Ty(context)},
         {{{"int"},
           {"signed"},
-          {"signed", "int"}}, (Type*)Type::getInt32Ty(context)},
+          {"signed", "int"}}, Type::getInt32Ty(context)},
         {{{"unsigned"},
-          {"unsigned", "int"}}, (Type*)Type::getInt32Ty(context)},
+          {"unsigned", "int"}}, Type::getInt32Ty(context)},
         {{{"long"},
           {"signed", "long"},
           {"long", "int"},
-          {"signed", "long", "int"}}, (Type*)Type::getInt64Ty(context)},
+          {"signed", "long", "int"}}, Type::getInt64Ty(context)},
         {{{"unsigned", "long"},
-          {"unsigned", "long", "int"}}, (Type*)Type::getInt64Ty(context)},
+          {"unsigned", "long", "int"}}, Type::getInt64Ty(context)},
         {{{"long", "long"},
           {"signed", "long", "long"},
           {"long", "long", "int"},
-          {"signed", "long", "long", "int"}}, (Type*)Type::getInt64Ty(context)},
+          {"signed", "long", "long", "int"}}, Type::getInt64Ty(context)},
         {{{"unsigned", "long", "long"},
-          {"unsigned", "long", "long", "int"}}, (Type*)Type::getInt64Ty(context)},
-        {{{"float"}}, (Type*)Type::getFloatTy(context)},
-        {{{"double"}}, (Type*)Type::getDoubleTy(context)},
-        {{{"long", "double"}}, (Type*)Type::getFP128Ty(context)},
-        {{{"_Bool"}}, (Type*)Type::getInt1Ty(context)},
+          {"unsigned", "long", "long", "int"}}, Type::getInt64Ty(context)},
+        {{{"float"}}, Type::getFloatTy(context)},
+        {{{"double"}}, Type::getDoubleTy(context)},
+        {{{"long", "double"}}, Type::getFP128Ty(context)},
+        {{{"_Bool"}}, Type::getInt1Ty(context)},
         {{{"float", "_Complex"}}, nullptr},
         {{{"double", "_Complex"}}, nullptr},
         {{{"long", "double", "_Cmplex"}}, nullptr}
@@ -134,18 +134,22 @@ tag* find_tag(const string& id)
 
 Type* register_type(struct_or_union_specifier* ss)
 {
+    if (!ss->has_sds)
+    {
+        for (auto sit = scopes.rbegin(); sit != scopes.rend(); ++sit)
+        {
+            auto& table = (*sit)->tags;
+            auto it = table.find(ss->id.str);
+            if (it != table.end())
+                return it->second->type;
+        }
+        return Type::getInt8Ty(context);
+    }
+
     auto& table = scopes.back()->tags;
     auto it = table.find(ss->id.str);
     if (it != table.end())
-    {
-        if (ss->has_sds)
-            error::reject(ss->id); // redefinicija
-        else
-            return it->second->type;
-    }
-
-    if (!ss->has_sds)
-        return Type::getInt8Ty(context);
+        error::reject(ss->id); // redefinicija
 
     // definicija
     tag *t = new tag(ss);

@@ -1,10 +1,8 @@
 #include "ast.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/raw_ostream.h"
 
 LLVMContext context;
-static unique_ptr<Module> module;
+unique_ptr<Module> module;
 static unique_ptr<IRBuilder<>> builder, alloca_builder;
 static BasicBlock *continue_block = nullptr;
 static BasicBlock *break_block = nullptr;
@@ -30,6 +28,24 @@ static Value *create_variable(Type *type, const string &var_name)
     if (s->global)
         return create_global(type, var_name);
     return create_alloca(type, var_name);
+}
+
+Value *truncate(Value* cond)
+{
+    if (cond->getType()->isIntegerTy(1))
+        return cond;
+
+    Value *zero = ConstantInt::get(cond->getType(), 0);
+    return builder->CreateICmpNE(cond, zero);
+}
+
+Value *cast(Value *val, Type *type)
+{
+    if (val->getType()->isIntegerTy() && type->isIntegerTy())
+        return builder->CreateZExtOrTrunc(val, type);
+
+    // todo: hack
+    return Constant::getNullValue(type);
 }
 
 Value* declarator::codegen()
@@ -240,7 +256,7 @@ Value* postfix_increment_expression::make_rvalue()
 {
     Value *addr = pfe->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = builder->CreateAdd(oval, builder->getInt32(1));
+    Value *nval = builder->CreateAdd(oval, ConstantInt::get(oval->getType(), 1));
     builder->CreateStore(nval, addr);
     return oval;
 }
@@ -254,7 +270,7 @@ Value* postfix_decrement_expression::make_rvalue()
 {
     Value *addr = pfe->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = builder->CreateSub(oval, builder->getInt32(1));
+    Value *nval = builder->CreateSub(oval, ConstantInt::get(oval->getType(), 1));
     builder->CreateStore(nval, addr);
     return oval;
 }
@@ -278,7 +294,7 @@ Value* prefix_increment_expression::make_rvalue()
 {
     Value *addr = ue->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = builder->CreateAdd(oval, builder->getInt32(1));
+    Value *nval = builder->CreateAdd(oval, ConstantInt::get(oval->getType(), 1));
     builder->CreateStore(nval, addr);
     return builder->CreateLoad(addr);
 }
@@ -292,7 +308,7 @@ Value* prefix_decrement_expression::make_rvalue()
 {
     Value *addr = ue->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = builder->CreateSub(oval, builder->getInt32(1));
+    Value *nval = builder->CreateSub(oval, ConstantInt::get(oval->getType(), 1));
     builder->CreateStore(nval, addr);
     return builder->CreateLoad(addr);
 }
@@ -336,7 +352,7 @@ Value* unary_plus_expression::make_lvalue()
 Value* unary_minus_expression::make_rvalue()
 {
     Value* r = ce->make_rvalue();
-    return builder->CreateSub(builder->getInt32(0), r);
+    return builder->CreateSub(ConstantInt::get(r->getType(), 0), r);
 }
 
 Value* unary_minus_expression::make_lvalue()
@@ -347,7 +363,7 @@ Value* unary_minus_expression::make_lvalue()
 Value* unary_tilde_expression::make_rvalue()
 {
     Value* r = ce->make_rvalue();
-    return builder->CreateXor(builder->getInt32(-1), r);
+    return builder->CreateXor(ConstantInt::get(r->getType(), -1), r);
 }
 
 Value* unary_tilde_expression::make_lvalue()
@@ -358,7 +374,8 @@ Value* unary_tilde_expression::make_lvalue()
 Value* unary_not_expression::make_rvalue()
 {
     Value* r = ce->make_rvalue();
-    return builder->CreateXor(builder->getInt1(1), r);
+    Value *one = ConstantInt::get(r->getType(), 1);
+    return builder->CreateICmpNE(r, one);
 }
 
 Value* unary_not_expression::make_lvalue()
@@ -368,6 +385,8 @@ Value* unary_not_expression::make_lvalue()
 
 Value* sizeof_expression::make_rvalue()
 {
+    // TODO
+    return builder->getInt32(4);
 }
 
 Value* sizeof_expression::make_lvalue()
@@ -377,6 +396,8 @@ Value* sizeof_expression::make_lvalue()
 
 Value* sizeof_type_expression::make_rvalue()
 {
+    // TODO
+    return builder->getInt32(4);
 }
 
 Value* sizeof_type_expression::make_lvalue()
@@ -386,12 +407,16 @@ Value* sizeof_type_expression::make_lvalue()
 
 Value* cast_expression::make_rvalue()
 {
-    return ue->make_rvalue();
+    if (ue)
+        return ue->make_rvalue();
+    return cast(ce->make_rvalue(), tn->type);
 }
 
 Value* cast_expression::make_lvalue()
 {
-    return ue->make_lvalue();
+    if (ue)
+        return ue->make_lvalue();
+    return ce->make_lvalue();
 }
 
 Value* multiplicative_expression::make_rvalue()
@@ -668,7 +693,7 @@ Value* logical_and_expression::make_rvalue()
     BasicBlock *header_block = BasicBlock::Create(context, "and-header", function);
     builder->CreateBr(header_block);
     builder->SetInsertPoint(header_block);
-    Value *cond = lhs->make_rvalue();
+    Value *cond = truncate(lhs->make_rvalue());
 
     BasicBlock *true_block = BasicBlock::Create(context, "true", function);
     BasicBlock *false_block = BasicBlock::Create(context, "false", function);
@@ -712,7 +737,7 @@ Value* logical_or_expression::make_rvalue()
     BasicBlock *header_block = BasicBlock::Create(context, "or-header", function);
     builder->CreateBr(header_block);
     builder->SetInsertPoint(header_block);
-    Value *cond = lhs->make_rvalue();
+    Value *cond = truncate(lhs->make_rvalue());
 
     BasicBlock *true_block = BasicBlock::Create(context, "true", function);
     BasicBlock *false_block = BasicBlock::Create(context, "false", function);
@@ -761,7 +786,7 @@ Value* conditional_expression::make_rvalue()
     builder->CreateBr(header_block);
 
     builder->SetInsertPoint(header_block);
-    Value *cond = expr1->make_rvalue();
+    Value *cond = truncate(expr1->make_rvalue());
     builder->CreateCondBr(cond, true_block, false_block);
 
     builder->SetInsertPoint(true_block);
@@ -918,7 +943,7 @@ Value* if_statement::codegen()
 
     builder->CreateBr(header_block);
     builder->SetInsertPoint(header_block);
-    Value *cond = expr->make_rvalue();
+    Value *cond = truncate(expr->make_rvalue());
     builder->CreateCondBr(cond, then_block, else_block);
 
     builder->SetInsertPoint(then_block);
@@ -950,7 +975,7 @@ Value* while_statement::codegen()
 
     builder->CreateBr(header_block);
     builder->SetInsertPoint(header_block);
-    Value *cond = expr->make_rvalue();
+    Value *cond = truncate(expr->make_rvalue());
     builder->CreateCondBr(cond, body_block, end_block);
 
     builder->SetInsertPoint(body_block);
@@ -978,7 +1003,7 @@ Value* do_while_statement::codegen()
     stat->codegen();
     builder->CreateBr(check_block);
     builder->SetInsertPoint(check_block);
-    Value *cond = expr->make_rvalue();
+    Value *cond = truncate(expr->make_rvalue());
     builder->CreateCondBr(cond, header_block, end_block);
 
     builder->SetInsertPoint(end_block);
@@ -1005,7 +1030,7 @@ Value* for_statement::codegen()
     builder->CreateBr(check_block);
 
     builder->SetInsertPoint(check_block);
-    Value *cond = expr2->make_rvalue();
+    Value *cond = truncate(expr2->make_rvalue());
     builder->CreateCondBr(cond, body_block, end_block);
 
     builder->SetInsertPoint(body_block);
@@ -1148,17 +1173,4 @@ Value* translation_unit::codegen(const char* filename)
     scopes.pop_back();
 
     verifyModule(*module);
-
-    string fn = filename;
-    size_t pos = fn.find('/');
-    if (pos != fn.npos)
-        fn = fn.substr(pos + 1);
-    pos = fn.find('.');
-    if (pos != fn.npos)
-        fn = fn.substr(0, pos);
-    fn += ".ll";
-
-    error_code EC;
-    raw_fd_ostream stream(fn, EC, sys::fs::OpenFlags::F_Text);
-    module->print(stream, nullptr);
 }
