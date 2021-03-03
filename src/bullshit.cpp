@@ -8,6 +8,66 @@ map<string, goto_label*> labels;
 map<string, tag*> htags;
 int tag_counter;
 
+Type* valid_type_specifier(vector<type_specifier*> tsps)
+{
+    static const vector<pair<vector<vector<string>>, Type*>> valid = {
+        {{{"void"}}, (Type*)Type::getInt8Ty(context)},
+        {{{"char"}}, (Type*)Type::getInt8Ty(context)},
+        {{{"signed", "char"}}, (Type*)Type::getInt8Ty(context)},
+        {{{"unsigned", "char"}}, (Type*)Type::getInt8Ty(context)},
+        {{{"short"},
+          {"signed", "short"},
+          {"short", "int"},
+          {"signed", "short", "int"}}, (Type*)Type::getInt16Ty(context)},
+        {{{"unsigned", "short"},
+          {"unsigned", "short", "int"}}, (Type*)Type::getInt16Ty(context)},
+        {{{"int"},
+          {"signed"},
+          {"signed", "int"}}, (Type*)Type::getInt32Ty(context)},
+        {{{"unsigned"},
+          {"unsigned", "int"}}, (Type*)Type::getInt32Ty(context)},
+        {{{"long"},
+          {"signed", "long"},
+          {"long", "int"},
+          {"signed", "long", "int"}}, (Type*)Type::getInt64Ty(context)},
+        {{{"unsigned", "long"},
+          {"unsigned", "long", "int"}}, (Type*)Type::getInt64Ty(context)},
+        {{{"long", "long"},
+          {"signed", "long", "long"},
+          {"long", "long", "int"},
+          {"signed", "long", "long", "int"}}, (Type*)Type::getInt64Ty(context)},
+        {{{"unsigned", "long", "long"},
+          {"unsigned", "long", "long", "int"}}, (Type*)Type::getInt64Ty(context)},
+        {{{"float"}}, (Type*)Type::getFloatTy(context)},
+        {{{"double"}}, (Type*)Type::getDoubleTy(context)},
+        {{{"long", "double"}}, (Type*)Type::getFP128Ty(context)},
+        {{{"_Bool"}}, (Type*)Type::getInt1Ty(context)},
+        {{{"float", "_Complex"}}, nullptr},
+        {{{"double", "_Complex"}}, nullptr},
+        {{{"long", "double", "_Cmplex"}}, nullptr}
+    };
+
+    map<string, int> freqb;
+    for (type_specifier* ts : tsps)
+    {
+        builtin_type_specifier* bts = dynamic_cast<builtin_type_specifier*>(ts);
+        freqb[bts->tok.str]++;
+    }
+
+    for (auto& [tsv, type] : valid)
+    {
+        for (auto& ts : tsv)
+        {
+            map<string, int> freqa;
+            for (const string& s : ts)
+                freqa[s]++;
+            if (freqa == freqb)
+                return type;
+        }
+    }
+    return nullptr;
+}
+
 void resolve_gotos()
 {
     for (goto_statement* gs : gotos)
@@ -58,7 +118,7 @@ tag::tag(struct_or_union_specifier* ss)
 
             int next = indices.size();
             indices[tok.str] = next;
-            members.push_back(make_type(sd->ts, dec));
+            members.push_back(make_type(sd->type, dec));
         }
     }
     type->setBody(members);
@@ -76,22 +136,21 @@ tag* find_tag(const string& id)
     return nullptr;
 }
 
-void register_type(type_specifier* ts)
+Type* register_type(struct_or_union_specifier* ss)
 {
-    struct_or_union_specifier* ss = dynamic_cast<struct_or_union_specifier*>(ts);
-    if (!ss)
-        return;
-
-    if (!ss->has_sds)
-        return;
-
     auto& table = scopes.back()->tags;
     auto it = table.find(ss->id.str);
     if (it != table.end())
-        error::reject(ss->id); // redefinicija
+    {
+        if (ss->has_sds)
+            error::reject(ss->id); // redefinicija
+        else
+            return it->second->type;
+    }
 
     // definicija
     tag *t = new tag(ss);
     table[ss->id.str] = t;
     htags[t->h] = t;
+    return t->type;
 }

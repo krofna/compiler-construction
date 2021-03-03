@@ -486,7 +486,18 @@ token function_definition::get_identifier()
 
 bool function_declarator::is_noparam()
 {
-    return pl.size() == 1 && pl.front()->ds->ts->is_void();
+    if (pl.size() != 1)
+        return false;
+
+    const vector<declspec*> &declspecs = pl.front()->ds->declspecs;
+    if (declspecs.size() != 1)
+        return false;
+
+    builtin_type_specifier* bs = dynamic_cast<builtin_type_specifier*>(declspecs.front());
+    if (!bs)
+        return false;
+
+    return bs->tok.str == "void";
 }
 
 variable_object::variable_object(Type *type) : type(type)

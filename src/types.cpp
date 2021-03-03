@@ -2,19 +2,6 @@
 
 extern LLVMContext context;
 
-Type *make_builtin(builtin_type_specifier* bts)
-{
-    if (bts->tok.str == "int")
-        return IntegerType::get(context, 32);
-    else if (bts->tok.str == "char")
-        return IntegerType::get(context, 8);
-    else if (bts->tok.str == "void")
-        return IntegerType::get(context, 8);
-    else if (bts->tok.str == "long")
-        return IntegerType::get(context, 64);
-    assert(false);
-}
-
 Type *make_ptr(Type *type, declarator *de)
 {
     for (int i = 0; i < de->num_pointers(); ++i)
@@ -22,23 +9,13 @@ Type *make_ptr(Type *type, declarator *de)
     return type;
 }
 
-Type *make_noptr_type(type_specifier* ts)
+Type *make_type(Type* type, declarator* de)
 {
-    if (builtin_type_specifier* bts = dynamic_cast<builtin_type_specifier*>(ts))
-        return make_builtin(bts);
-    if (struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ts))
-        return find_tag(sus->id.str)->type;
-    assert(false);
-}
-
-Type *make_type(type_specifier* ts, declarator* de)
-{
-    Type *type = make_noptr_type(ts);
     if (de) type = make_ptr(type, de);
     return type;
 }
 
-FunctionType *make_function(type_specifier* ts, declarator* de)
+FunctionType *make_function(Type* type, declarator* de)
 {
     vector<Type*> arguments;
     de = de->unparenthesize();
@@ -49,10 +26,10 @@ FunctionType *make_function(type_specifier* ts, declarator* de)
         for (parameter_declaration *pd : fd->pl)
         {
             if (pd)
-                arguments.push_back(make_type(pd->ds->ts, pd->decl));
+                arguments.push_back(make_type(pd->ds->type, pd->decl));
             else
                 vararg = true;
         }
     }
-    return FunctionType::get(make_type(ts, de), arguments, vararg);
+    return FunctionType::get(make_type(type, de), arguments, vararg);
 }

@@ -563,10 +563,9 @@ declaration* parser::parse_declaration()
             return nullptr;
         }
 
-        register_type(ds->ts);
-        struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ds->ts);
+        if (ds->sus) ds->type = register_type(ds->sus);
         // you can do struct x; but not int;
-        if (!sus && decl->d.empty())
+        if (!ds->sus && decl->d.empty())
             reject(1);
 
         for (declarator* d : decl->d)
@@ -576,16 +575,16 @@ declaration* parser::parse_declaration()
             if (d->dd->is_identifier() || d->dd->is_definition())
             {
                 // TOOD: check which tag (union or struct)
-                if (sus)
+                if (ds->sus)
                 {
-                    if (!d->is_pointer() && !find_tag(sus->id.str))
+                    if (!d->is_pointer() && !find_tag(ds->sus->id.str))
                         error::reject(identifier); // incomplete type
                 }
 
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinition
 
-                Type *type = make_type(ds->ts, d);
+                Type *type = make_type(ds->type, d);
                 table[identifier.str] = new variable_object(type);
             }
             else
@@ -599,7 +598,7 @@ declaration* parser::parse_declaration()
                 else
                 {
                     function_object *fo = new function_object(false);
-                    fo->type = make_function(ds->ts, d);
+                    fo->type = make_function(ds->type, d);
                     table[identifier.str] = fo;
                 }
             }
@@ -609,15 +608,62 @@ declaration* parser::parse_declaration()
     return nullptr;
 }
 
+pair<Type*, struct_or_union_specifier*> parser::handle_type_specifiers(vector<type_specifier*>& tsps)
+{
+    for (type_specifier* ts : tsps)
+    {
+        if (struct_or_union_specifier* sus = dynamic_cast<struct_or_union_specifier*>(ts))
+        {
+            if (tsps.size() > 1)
+                reject();
+
+            return {nullptr, sus};
+        }
+    }
+
+    Type *type = valid_type_specifier(tsps);
+    if (!type)
+        reject();
+
+    return {type, nullptr};
+}
+
 declaration_specifiers* parser::parse_declaration_specifiers()
 {
-    if (type_specifier* ts = parse_type_specifier())
+    vector<declspec*> declspecs;
+    vector<type_specifier*> tsps;
+    while (true)
     {
-        declaration_specifiers* ds = new declaration_specifiers;
-        ds->ts = ts;
-        return ds;
+        if (type_specifier* ts = parse_type_specifier())
+        {
+            declspecs.push_back(ts);
+            tsps.push_back(ts);
+            continue;
+        }
+        if (type_qualifier* tq = parse_type_qualifier())
+        {
+            declspecs.push_back(tq);
+            continue;
+        }
+        if (function_specifier* fs = parse_function_specifier())
+        {
+            declspecs.push_back(fs);
+            continue;
+        }
+        if (storage_class_specifier* ss = parse_storage_class_specifier())
+        {
+            declspecs.push_back(ss);
+            continue;
+        }
+        break;
     }
-    return nullptr;
+    if (declspecs.empty())
+        return nullptr;
+
+    declaration_specifiers* ds = new declaration_specifiers;
+    ds->declspecs = declspecs;
+    tie(ds->type, ds->sus) = handle_type_specifiers(tsps);
+    return ds;
 }
 
 storage_class_specifier* parser::parse_storage_class_specifier()
@@ -684,18 +730,35 @@ struct_or_union_specifier* parser::parse_struct_or_union_specifier()
 
 struct_declaration* parser::parse_struct_declaration()
 {
-    if (type_specifier* ts = parse_type_specifier())
+    vector<type_specifier*> tss;
+    vector<specifier_qualifier*> sqs;
+    while (true)
     {
-        struct_declaration* sd = new struct_declaration;
-        sd->ts = ts;
-        sd->ds = parse_struct_declarator_list();
-        if (sd->ds.empty())
-            reject();
-        accepts(";");
-        register_type(ts);
-        return sd;
+        if (type_specifier* ts = parse_type_specifier())
+        {
+            tss.push_back(ts);
+            sqs.push_back(ts);
+            continue;
+        }
+        if (type_qualifier* tq = parse_type_qualifier())
+        {
+            sqs.push_back(tq);
+            continue;
+        }
+        break;
     }
-    return nullptr;
+    if (sqs.empty())
+        return nullptr;
+
+    struct_declaration* sd = new struct_declaration;
+    tie(sd->type, sd->sus) = handle_type_specifiers(tss);
+    if (sd->sus) sd->type = register_type(sd->sus);
+    sd->sqs = sqs;
+    sd->ds = parse_struct_declarator_list();
+    if (sd->ds.empty())
+        reject();
+    accepts(";");
+    return sd;
 }
 
 vector<declarator*> parser::parse_struct_declarator_list()
@@ -900,25 +963,30 @@ declarator* parser::parse_abstract_declarator()
 
 type_name* parser::parse_type_name()
 {
-    type_name* tn = new type_name;
+    vector<specifier_qualifier*> sqs;
+    vector<type_specifier*> tss;
     while (true)
     {
         if (type_specifier* ts = parse_type_specifier())
         {
-            tn->sqs.push_back(ts);
-            register_type(ts);
+            sqs.push_back(ts);
+            tss.push_back(ts);
             continue;
         }
         if (type_qualifier* tq = parse_type_qualifier())
         {
-            tn->sqs.push_back(tq);
+            sqs.push_back(tq);
             continue;
         }
         break;
     }
-    if (tn->sqs.empty())
-        return delete tn, nullptr;
+    if (sqs.empty())
+        return nullptr;
 
+    type_name* tn = new type_name;
+    tn->sqs = sqs;
+    tie(tn->type, tn->sus) = handle_type_specifiers(tss);
+    if (tn->sus) tn->type = register_type(tn->sus);
     tn->ad = parse_abstract_declarator();
     return tn;
 }
@@ -929,7 +997,7 @@ parameter_declaration* parser::parse_parameter_declaration()
     {
         parameter_declaration* pd = new parameter_declaration;
         pd->ds = ds;
-        register_type(ds->ts);
+        if (ds->sus) ds->type = register_type(ds->sus);
         if (declarator* decl = parse_declarator())
             pd->decl = decl;
         else
@@ -1161,7 +1229,7 @@ function_definition* parser::parse_function_definition()
 {
     function_definition* fd = new function_definition;
     fd->ds = accept(parse_declaration_specifiers());
-    register_type(fd->ds->ts);
+    if (fd->ds->sus) fd->ds->type = register_type(fd->ds->sus);
     scopes.push_back(fd->sc = new scope(false));
     fd->dec = accept(parse_declarator());
 
@@ -1175,7 +1243,7 @@ function_definition* parser::parse_function_definition()
     // check return type
     if (!decl->p)
     {
-        struct_or_union_specifier* ss = dynamic_cast<struct_or_union_specifier*>(fd->ds->ts);
+        struct_or_union_specifier* ss = fd->ds->sus;
         if (ss && !find_tag(ss->id.str))
             error::reject(identifier);
     }
@@ -1193,7 +1261,7 @@ function_definition* parser::parse_function_definition()
     else
     {
         function_object* fo = new function_object(true);
-        fo->type = make_function(fd->ds->ts, fd->dec);
+        fo->type = make_function(fd->ds->type, fd->dec);
         table[identifier.str] = fo;
     }
 
@@ -1223,7 +1291,7 @@ function_definition* parser::parse_function_definition()
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinicija
 
-                Type *type = make_type(pard->ds->ts, decl);
+                Type *type = make_type(pard->ds->type, decl);
                 table[identifier.str] = new variable_object(type);
             }
             else

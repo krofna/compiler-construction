@@ -60,7 +60,12 @@ struct scope
     map<string, tag*> tags;
 };
 
-struct specifier_qualifier
+struct declspec
+{
+    virtual void print() = 0;
+};
+
+struct specifier_qualifier : declspec
 {
     virtual void print() = 0;
 };
@@ -92,7 +97,9 @@ struct struct_declaration
 {
     void print();
 
-    type_specifier* ts;
+    Type *type;
+    struct_or_union_specifier* sus = nullptr;
+    vector<specifier_qualifier*> sqs;
     vector<declarator*> ds;
 };
 
@@ -111,6 +118,8 @@ struct type_name
 {
     void print();
 
+    Type* type;
+    struct_or_union_specifier* sus = nullptr;
     vector<specifier_qualifier*> sqs;
     declarator* ad = nullptr;
 };
@@ -119,17 +128,19 @@ struct declaration_specifiers
 {
     void print();
 
-    type_specifier* ts;
+    Type *type;
+    struct_or_union_specifier* sus = nullptr;
+    vector<declspec*> declspecs;
 };
 
-struct storage_class_specifier
+struct storage_class_specifier : declspec
 {
     void print();
 
     token tok;
 };
 
-struct function_specifier
+struct function_specifier : declspec
 {
     void print();
 
@@ -949,7 +960,7 @@ object* find_var(const string& id);
 variable_object* find_variable(const string& id);
 function_object* find_function(const string& id);
 tag* find_tag(const string& id);
-void register_type(type_specifier* ts);
+Type* register_type(struct_or_union_specifier* ss);
 void resolve_gotos();
 
 extern vector<scope*> scopes;

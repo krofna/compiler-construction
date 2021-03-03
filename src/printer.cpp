@@ -51,10 +51,19 @@ void builtin_type_specifier::print()
 
 void struct_declaration::print()
 {
-    ts->print();
+    bool flg = false;
+    for (specifier_qualifier* sq : sqs)
+    {
+        if (flg)
+            pout << " ";
+        flg = true;
+        sq->print();
+    }
+
     if (!ds.empty())
         pout << " ";
-    bool flg = false;
+
+    flg = false;
     for (declarator* d : ds)
     {
         if (flg)
@@ -108,7 +117,14 @@ void type_name::print()
 
 void declaration_specifiers::print()
 {
-    ts->print();
+    bool flg = false;
+    for (declspec* d : declspecs)
+    {
+        if (flg)
+            pout << " ";
+        flg = true;
+        d->print();
+    }
 }
 
 void storage_class_specifier::print()
@@ -654,7 +670,7 @@ void goto_label::print()
 
 void case_label::print()
 {
-    
+
     if (pout.buffer.back() == '\t')
         pout.buffer.pop_back();
 

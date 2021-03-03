@@ -107,6 +107,8 @@ private:
         return *tokit++;
     }
 
+    pair<Type*, struct_or_union_specifier*> handle_type_specifiers(vector<type_specifier*>& tsps);
+
     expression* parse_expression();
     primary_expression* parse_primary_expression();
     postfix_expression* parse_postfix_expression();
