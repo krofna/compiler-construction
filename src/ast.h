@@ -705,6 +705,7 @@ struct conditional_expression
     Value* make_lvalue();
     Value* make_rvalue();
 
+    token op;
     logical_or_expression* oe = nullptr;
     logical_or_expression* expr1 = nullptr;
     expression* expr2 = nullptr;

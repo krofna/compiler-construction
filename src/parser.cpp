@@ -518,6 +518,7 @@ conditional_expression* parser::parse_conditional_expression()
         conditional_expression* ce = new conditional_expression;
         if (check("?"))
         {
+            ce->op = prev_token();
             ce->expr1 = oe;
             ce->expr2 = accept(parse_expression());
             accepts(":");

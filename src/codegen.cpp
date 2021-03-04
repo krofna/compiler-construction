@@ -949,7 +949,7 @@ Value* conditional_expression::make_lvalue()
 {
     if (oe)
         return oe->make_lvalue();
-    error::reject();
+    error::reject(op);
 }
 
 Value* conditional_expression::make_rvalue()
@@ -1083,7 +1083,7 @@ Value* constant_expression::make_rvalue()
 
 Value* constant_expression::make_lvalue()
 {
-    error::reject();
+    return ce->make_lvalue();
 }
 
 Value* expression::make_rvalue()
