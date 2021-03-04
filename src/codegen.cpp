@@ -41,11 +41,51 @@ static Value *truncate(Value* cond)
 
 static Value *cast(Value *val, Type *type)
 {
-    if (val->getType()->isIntegerTy() && type->isIntegerTy())
-        return builder->CreateZExtOrTrunc(val, type);
+    Type *vtype = val->getType();
+    if (vtype == type)
+        return val;
 
-    // todo: hack
-    return Constant::getNullValue(type);
+    if (type->isPointerTy() && vtype->isPointerTy())
+        return builder->CreateBitCast(val, type);
+
+    if (type->isPointerTy())
+        return builder->CreateIntToPtr(val, type);
+
+    if (vtype->isPointerTy())
+        return builder->CreatePtrToInt(val, type);
+
+    return builder->CreateZExtOrTrunc(val, type);
+}
+
+static Value *create_add(Value *rhs, Value *lhs)
+{
+    Type *rtype = rhs->getType();
+    Type *ltype = lhs->getType();
+
+    if (rtype->isStructTy() || ltype->isStructTy())
+        return nullptr;
+
+    if (rtype->isPointerTy() && ltype->isPointerTy())
+        return nullptr;
+
+    if (rtype->isPointerTy())
+    {
+        lhs = cast(lhs, Type::getInt32Ty(context));
+        return builder->CreateGEP(rhs, lhs);
+    }
+
+    if (ltype->isPointerTy())
+    {
+        rhs = cast(rhs, Type::getInt32Ty(context));
+        return builder->CreateGEP(lhs, rhs);
+    }
+
+    if (rtype->getPrimitiveSizeInBits() > ltype->getPrimitiveSizeInBits())
+        lhs = builder->CreateZExt(lhs, rhs->getType());
+    if (rtype->getPrimitiveSizeInBits() < ltype->getPrimitiveSizeInBits())
+        rhs = builder->CreateZExt(rhs, rhs->getType());
+
+    return builder->CreateAdd(lhs, rhs);
 }
 
 Value* declarator::codegen()
@@ -256,7 +296,7 @@ Value* postfix_increment_expression::make_rvalue()
 {
     Value *addr = pfe->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = builder->CreateAdd(oval, ConstantInt::get(oval->getType(), 1));
+    Value *nval = create_add(oval, ConstantInt::get(oval->getType(), 1));
     builder->CreateStore(nval, addr);
     return oval;
 }
@@ -294,7 +334,7 @@ Value* prefix_increment_expression::make_rvalue()
 {
     Value *addr = ue->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = builder->CreateAdd(oval, ConstantInt::get(oval->getType(), 1));
+    Value *nval = create_add(oval, ConstantInt::get(oval->getType(), 1));
     builder->CreateStore(nval, addr);
     return builder->CreateLoad(addr);
 }
@@ -479,7 +519,7 @@ Value* add_expression::make_rvalue()
 {
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
-    return builder->CreateAdd(l, r);
+    return create_add(l, r);
 }
 
 Value* add_expression::make_lvalue()
@@ -844,7 +884,7 @@ Value* assignment_expression::make_rvalue()
     }
     if (op.str == "+=")
     {
-        Value *v = builder->CreateAdd(lv, r);
+        Value *v = create_add(lv, r);
         builder->CreateStore(v, l);
         return v;
     }

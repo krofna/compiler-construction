@@ -989,6 +989,7 @@ type_name* parser::parse_type_name()
     tie(tn->type, tn->sus) = handle_type_specifiers(tss);
     if (tn->sus) tn->type = register_type(tn->sus);
     tn->ad = parse_abstract_declarator();
+    tn->type = make_ptr(tn->type, tn->ad);
     return tn;
 }
 
