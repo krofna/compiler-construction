@@ -54,10 +54,69 @@ static Value *cast(Value *val, Type *type)
     if (vtype->isPointerTy())
         return builder->CreatePtrToInt(val, type);
 
-    return builder->CreateZExtOrTrunc(val, type);
+    return builder->CreateSExtOrTrunc(val, type);
 }
 
-static Value *create_add(Value *rhs, Value *lhs)
+static Value *store(Value *val, Value *ptr)
+{
+    val = cast(val, ptr->getType()->getContainedType(0));
+    return builder->CreateStore(val, ptr);
+}
+
+static bool adjust_int(Value *&lhs, Value *&rhs)
+{
+    Type *ltype = lhs->getType();
+    Type *rtype = rhs->getType();
+
+    if (!rtype->isIntegerTy() || !ltype->isIntegerTy())
+        return false;
+
+    if (rtype->getPrimitiveSizeInBits() > ltype->getPrimitiveSizeInBits())
+        lhs = builder->CreateSExt(lhs, rhs->getType());
+    if (rtype->getPrimitiveSizeInBits() < ltype->getPrimitiveSizeInBits())
+        rhs = builder->CreateSExt(rhs, lhs->getType());
+
+    return true;
+}
+
+static bool adjust_ptr(Value *&lhs, Value *&rhs)
+{
+    Type *ltype = lhs->getType();
+    Type *rtype = rhs->getType();
+
+    if (!rtype->isPointerTy() || !ltype->isPointerTy())
+        return false;
+
+    if (ltype != rtype)
+        return false;
+
+    Type *type = Type::getInt32Ty(context);
+    lhs = builder->CreatePtrToInt(lhs, type);
+    rhs = builder->CreatePtrToInt(rhs, type);
+    return true;
+}
+
+static bool adjust_int_ptr(Value *&lhs, Value *&rhs)
+{
+    if (adjust_int(lhs, rhs))
+        return true;
+    if (adjust_ptr(lhs, rhs))
+        return true;
+    return false;
+}
+
+static Value *create_gep(Value *ptr, Value *idx)
+{
+    idx = cast(idx, Type::getInt32Ty(context));
+    return builder->CreateGEP(ptr, idx);
+}
+
+static Value *negative(Value *val)
+{
+    return builder->CreateSub(ConstantInt::get(val->getType(), 0), val);
+}
+
+static Value *create_add(Value *lhs, Value *rhs)
 {
     Type *rtype = rhs->getType();
     Type *ltype = lhs->getType();
@@ -69,23 +128,69 @@ static Value *create_add(Value *rhs, Value *lhs)
         return nullptr;
 
     if (rtype->isPointerTy())
-    {
-        lhs = cast(lhs, Type::getInt32Ty(context));
-        return builder->CreateGEP(rhs, lhs);
-    }
+        return create_gep(rhs, lhs);
 
     if (ltype->isPointerTy())
-    {
-        rhs = cast(rhs, Type::getInt32Ty(context));
-        return builder->CreateGEP(lhs, rhs);
-    }
+        return create_gep(lhs, rhs);
 
-    if (rtype->getPrimitiveSizeInBits() > ltype->getPrimitiveSizeInBits())
-        lhs = builder->CreateZExt(lhs, rhs->getType());
-    if (rtype->getPrimitiveSizeInBits() < ltype->getPrimitiveSizeInBits())
-        rhs = builder->CreateZExt(rhs, rhs->getType());
+    if (!adjust_int(rhs, lhs))
+        return nullptr;
 
     return builder->CreateAdd(lhs, rhs);
+}
+
+static Value *create_div(Value *lhs, Value *rhs)
+{
+    if (!adjust_int(lhs, rhs))
+        return nullptr;
+
+    return builder->CreateSDiv(lhs, rhs);
+}
+
+static Value *get_size(Type *type)
+{
+    Type *rt = Type::getInt32Ty(context);
+    return builder->CreateTrunc(ConstantExpr::getSizeOf(type), rt);
+}
+
+static Value *create_sub(Value *lhs, Value *rhs)
+{
+    Type *rtype = rhs->getType();
+    Type *ltype = lhs->getType();
+
+    if (rtype->isStructTy() || ltype->isStructTy())
+        return nullptr;
+
+    if (rtype->isPointerTy() && ltype->isPointerTy())
+    {
+        if (rtype->getContainedType(0) != ltype->getContainedType(0))
+            return nullptr;
+
+        Type *type = Type::getInt32Ty(context);
+        lhs = builder->CreatePtrToInt(lhs, type);
+        rhs = builder->CreatePtrToInt(rhs, type);
+        Value *diff = builder->CreateSub(lhs, rhs);
+        return create_div(diff, get_size(rtype->getContainedType(0)));
+    }
+
+    if (rtype->isPointerTy())
+        return nullptr;
+
+    if (ltype->isPointerTy())
+        return create_gep(lhs, negative(rhs));
+
+    if (!adjust_int(lhs, rhs))
+        return nullptr;
+
+    return builder->CreateSub(lhs, rhs);
+}
+
+static Value *create_mul(Value *lhs, Value *rhs)
+{
+    if (!adjust_int(lhs, rhs))
+        return nullptr;
+
+    return builder->CreateMul(lhs, rhs);
 }
 
 Value* declarator::codegen()
@@ -181,7 +286,7 @@ Value* postfix_expression::make_lvalue()
 {
     if (pe)
         return pe->make_lvalue();
-    error::reject();
+    error::reject(op);
 }
 
 Value* subscript_expression::make_rvalue()
@@ -193,9 +298,10 @@ Value* subscript_expression::make_rvalue()
 Value* subscript_expression::make_lvalue()
 {
     Value *l = pfe->make_rvalue();
-    vector<Value*> indices;
-    indices.push_back(expr->make_rvalue());
-    return builder->CreateInBoundsGEP(l, indices);
+    Value *v = create_add(l, expr->make_rvalue());
+    if (!v)
+        error::reject();
+    return v;
 }
 
 Value* call_expression::make_rvalue()
@@ -228,7 +334,7 @@ Value* call_expression::make_lvalue()
 {
     Value *val = make_rvalue();
     Value *alloca = create_alloca(val->getType(), "tmp");
-    builder->CreateStore(val, alloca);
+    store(val, alloca);
     return alloca;
 }
 
@@ -297,7 +403,9 @@ Value* postfix_increment_expression::make_rvalue()
     Value *addr = pfe->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
     Value *nval = create_add(oval, ConstantInt::get(oval->getType(), 1));
-    builder->CreateStore(nval, addr);
+    if (!nval)
+        error::reject(op);
+    store(nval, addr);
     return oval;
 }
 
@@ -310,8 +418,10 @@ Value* postfix_decrement_expression::make_rvalue()
 {
     Value *addr = pfe->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = builder->CreateSub(oval, ConstantInt::get(oval->getType(), 1));
-    builder->CreateStore(nval, addr);
+    Value *nval = create_sub(oval, ConstantInt::get(oval->getType(), 1));
+    if (!nval)
+        error::reject(op);
+    store(nval, addr);
     return oval;
 }
 
@@ -335,27 +445,29 @@ Value* prefix_increment_expression::make_rvalue()
     Value *addr = ue->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
     Value *nval = create_add(oval, ConstantInt::get(oval->getType(), 1));
-    builder->CreateStore(nval, addr);
+    if (!nval)
+        error::reject(op);
+    store(nval, addr);
     return builder->CreateLoad(addr);
 }
 
 Value* prefix_increment_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* prefix_decrement_expression::make_rvalue()
 {
     Value *addr = ue->make_lvalue();
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = builder->CreateSub(oval, ConstantInt::get(oval->getType(), 1));
-    builder->CreateStore(nval, addr);
+    Value *nval = create_sub(oval, ConstantInt::get(oval->getType(), 1));
+    store(nval, addr);
     return builder->CreateLoad(addr);
 }
 
 Value* prefix_decrement_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* unary_and_expression::make_rvalue()
@@ -365,7 +477,7 @@ Value* unary_and_expression::make_rvalue()
 
 Value* unary_and_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* unary_star_expression::make_rvalue()
@@ -386,18 +498,18 @@ Value* unary_plus_expression::make_rvalue()
 
 Value* unary_plus_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* unary_minus_expression::make_rvalue()
 {
     Value* r = ce->make_rvalue();
-    return builder->CreateSub(ConstantInt::get(r->getType(), 0), r);
+    return negative(r);
 }
 
 Value* unary_minus_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* unary_tilde_expression::make_rvalue()
@@ -408,7 +520,7 @@ Value* unary_tilde_expression::make_rvalue()
 
 Value* unary_tilde_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* unary_not_expression::make_rvalue()
@@ -420,29 +532,28 @@ Value* unary_not_expression::make_rvalue()
 
 Value* unary_not_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* sizeof_expression::make_rvalue()
 {
-    // TODO
-    return builder->getInt32(4);
+    Value *val = ue->make_rvalue();
+    return get_size(val->getType());
 }
 
 Value* sizeof_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* sizeof_type_expression::make_rvalue()
 {
-    // TODO
-    return builder->getInt32(4);
+    return get_size(tn->type);
 }
 
 Value* sizeof_type_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* cast_expression::make_rvalue()
@@ -473,24 +584,30 @@ Value* mul_expression::make_rvalue()
 {
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
-    return builder->CreateMul(l, r);
+    Value *v = create_mul(l, r);
+    if (!v)
+        error::reject(op);
+    return v;
 }
 
 Value* mul_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* div_expression::make_rvalue()
 {
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
-    return builder->CreateSDiv(l, r);
+    Value *d = create_div(l, r);
+    if (!d)
+        error::reject(op);
+    return d;
 }
 
 Value* div_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* mod_expression::make_rvalue()
@@ -502,7 +619,7 @@ Value* mod_expression::make_rvalue()
 
 Value* mod_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* additive_expression::make_rvalue()
@@ -519,24 +636,30 @@ Value* add_expression::make_rvalue()
 {
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
-    return create_add(l, r);
+    Value *v = create_add(l, r);
+    if (!v)
+        error::reject(op);
+    return v;
 }
 
 Value* add_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* sub_expression::make_rvalue()
 {
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
-    return builder->CreateSub(l, r);
+    Value *v =create_sub(l, r);
+    if (!v)
+        error::reject(op);
+    return v;
 }
 
 Value* sub_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* shift_expression::make_rvalue()
@@ -587,48 +710,56 @@ Value* less_expression::make_rvalue()
 {
     Value *l = lhs->make_rvalue();
     Value *r = rhs->make_rvalue();
+    if (!adjust_int_ptr(l, r))
+        error::reject(op);
     return builder->CreateICmpSLT(l, r);
 }
 
 Value* less_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* greater_expression::make_rvalue()
 {
     Value *l = lhs->make_rvalue();
     Value *r = rhs->make_rvalue();
+    if (!adjust_int_ptr(l, r))
+        error::reject(op);
     return builder->CreateICmpSGT(l, r);
 }
 
 Value* greater_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* less_equal_expression::make_rvalue()
 {
     Value *l = lhs->make_rvalue();
     Value *r = rhs->make_rvalue();
+    if (!adjust_int_ptr(l, r))
+        error::reject(op);
     return builder->CreateICmpSLE(l, r);
 }
 
 Value* less_equal_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* greater_equal_expression::make_rvalue()
 {
     Value *l = lhs->make_rvalue();
     Value *r = rhs->make_rvalue();
+    if (!adjust_int_ptr(l, r))
+        error::reject(op);
     return builder->CreateICmpSGE(l, r);
 }
 
 Value* greater_equal_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* equality_expression::make_rvalue()
@@ -645,24 +776,28 @@ Value* equal_expression::make_rvalue()
 {
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
+    if (!adjust_int_ptr(l, r))
+        error::reject(op);
     return builder->CreateICmpEQ(l, r);
 }
 
 Value* equal_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* not_equal_expression::make_rvalue()
 {
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
+    if (!adjust_int_ptr(l, r))
+        error::reject(op);
     return builder->CreateICmpNE(l, r);
 }
 
 Value* not_equal_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* and_expression::make_rvalue()
@@ -672,6 +807,8 @@ Value* and_expression::make_rvalue()
 
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
+    if (!adjust_int(l, r))
+        error::reject(op);
     return builder->CreateAnd(l, r);
 }
 
@@ -679,7 +816,7 @@ Value* and_expression::make_lvalue()
 {
     if (ee)
         return ee->make_lvalue();
-    error::reject();
+    error::reject(op);
 }
 
 Value* exclusive_or_expression::make_rvalue()
@@ -689,6 +826,8 @@ Value* exclusive_or_expression::make_rvalue()
 
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
+    if (!adjust_int(l, r))
+        error::reject(op);
     return builder->CreateXor(l, r);
 }
 
@@ -696,7 +835,7 @@ Value* exclusive_or_expression::make_lvalue()
 {
     if (ae)
         return ae->make_lvalue();
-    error::reject();
+    error::reject(op);
 }
 
 Value* inclusive_or_expression::make_rvalue()
@@ -706,6 +845,8 @@ Value* inclusive_or_expression::make_rvalue()
 
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
+    if (!adjust_int(l, r))
+        error::reject(op);
     return builder->CreateOr(l, r);
 }
 
@@ -713,14 +854,14 @@ Value* inclusive_or_expression::make_lvalue()
 {
     if (xe)
         return xe->make_lvalue();
-    error::reject();
+    error::reject(op);
 }
 
 Value* logical_and_expression::make_lvalue()
 {
     if (oe)
         return oe->make_lvalue();
-    error::reject();
+    error::reject(op);
 }
 
 Value* logical_and_expression::make_rvalue()
@@ -764,7 +905,7 @@ Value* logical_or_expression::make_lvalue()
 {
     if (ae)
         return ae->make_lvalue();
-    error::reject();
+    error::reject(op);
 }
 
 Value* logical_or_expression::make_rvalue()
@@ -860,71 +1001,79 @@ Value* assignment_expression::make_rvalue()
     Value* r = rhs->make_rvalue(); // assignment_expression
     if (op.str == "=")
     {
-        builder->CreateStore(r, l);
+        store(r, l);
         return r;
     }
     Value *lv = builder->CreateLoad(l);
     if (op.str == "*=")
     {
-        Value *v = builder->CreateMul(lv, r);
-        builder->CreateStore(v, l);
+        Value *v = create_mul(lv, r);
+        if (!v)
+            error::reject(op);
+        store(v, l);
         return v;
     }
     if (op.str == "/=")
     {
-        Value *v = builder->CreateSDiv(lv, r);
-        builder->CreateStore(v, l);
+        Value *v = create_div(lv, r);
+        if (!v)
+            error::reject(op);
+        store(v, l);
         return v;
     }
     if (op.str == "%=")
     {
         Value *v = builder->CreateSRem(lv, r);
-        builder->CreateStore(v, l);
+        store(v, l);
         return v;
     }
     if (op.str == "+=")
     {
         Value *v = create_add(lv, r);
-        builder->CreateStore(v, l);
+        if (!v)
+            error::reject(op);
+        store(v, l);
         return v;
     }
     if (op.str == "-=")
     {
-        Value *v = builder->CreateSub(lv, r);
-        builder->CreateStore(v, l);
+        Value *v = create_sub(lv, r);
+        if (!v)
+            error::reject(op);
+        store(v, l);
         return v;
     }
     if (op.str == "<<=")
     {
         Value *v = builder->CreateShl(lv, r);
-        builder->CreateStore(v, l);
+        store(v, l);
         return v;
     }
     if (op.str == ">>=")
     {
         Value *v = builder->CreateAShr(lv, r);
-        builder->CreateStore(v, l);
+        store(v, l);
         return v;
     }
     if (op.str == "&=")
     {
         Value *v = builder->CreateAnd(lv, r);
-        builder->CreateStore(v, l);
+        store(v, l);
         return v;
     }
     if (op.str == "^=")
     {
         Value *v = builder->CreateXor(lv, r);
-        builder->CreateStore(v, l);
+        store(v, l);
         return v;
     }
     if (op.str == "|=")
     {
         Value *v = builder->CreateOr(lv, r);
-        builder->CreateStore(v, l);
+        store(v, l);
         return v;
     }
-    error::reject();
+    error::reject(op);
 }
 
 Value* constant_expression::make_rvalue()
@@ -947,7 +1096,12 @@ Value* expression::make_rvalue()
 
 Value* expression::make_lvalue()
 {
-    error::reject();
+    for (int i = 0; i < ae.size() - 1; ++i)
+        ae[i]->make_rvalue();
+
+    if (!ae.empty())
+        return ae.back()->make_lvalue();
+    return nullptr;
 }
 
 void goto_label::codegen()
@@ -1138,7 +1292,7 @@ void compound_statement::codegen()
     if (sc) scopes.pop_back();
 }
 
-Value* function_definition::codegen()
+void function_definition::codegen()
 {
     scopes.push_back(sc);
 
@@ -1170,7 +1324,7 @@ Value* function_definition::codegen()
         {
             // todo: decl should be object with storage not function declaration
             Value *val = pard->decl->codegen();
-            builder->CreateStore(arg_iter, val);
+            store(arg_iter, val);
             arg_iter++;
         }
     }
@@ -1193,17 +1347,17 @@ Value* function_definition::codegen()
     verifyFunction(*fo->function);
 
     scopes.pop_back();
-    return fo->function;
 }
 
-Value* external_declaration::codegen()
+void external_declaration::codegen()
 {
     if (fd)
-        return fd->codegen();
-    return decl->codegen();
+        fd->codegen();
+    else
+        decl->codegen();
 }
 
-Value* translation_unit::codegen(const char* filename)
+void translation_unit::codegen(const char* filename)
 {
     module = make_unique<Module>(filename, context);
     builder = make_unique<IRBuilder<>>(context);

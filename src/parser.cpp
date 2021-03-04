@@ -122,58 +122,68 @@ unary_expression* parser::parse_unary_expression()
     if (check("++"))
     {
         prefix_increment_expression* ie = new prefix_increment_expression;
+        ie->op = prev_token();
         ie->ue = accept(parse_unary_expression());
         return ie;
     }
     if (check("--"))
     {
         prefix_decrement_expression* de = new prefix_decrement_expression;
+        de->op = prev_token();
         de->ue = accept(parse_unary_expression());
         return de;
     }
     if (check("&"))
     {
         unary_and_expression* ae = new unary_and_expression;
+        ae->op = prev_token();
         ae->ce = accept(parse_cast_expression());
         return ae;
     }
     if (check("*"))
     {
         unary_star_expression* se = new unary_star_expression;
+        se->op = prev_token();
         se->ce = accept(parse_cast_expression());
         return se;
     }
     if (check("+"))
     {
         unary_plus_expression* pe = new unary_plus_expression;
+        pe->op = prev_token();
         pe->ce = accept(parse_cast_expression());
         return pe;
     }
     if (check("-"))
     {
         unary_minus_expression* me = new unary_minus_expression;
+        me->op = prev_token();
         me->ce = accept(parse_cast_expression());
         return me;
     }
     if (check("~"))
     {
         unary_tilde_expression* te = new unary_tilde_expression;
+        te->op = prev_token();
         te->ce = accept(parse_cast_expression());
         return te;
     }
     if (check("!"))
     {
         unary_not_expression* ne = new unary_not_expression;
+        ne->op = prev_token();
         ne->ce = accept(parse_cast_expression());
         return ne;
     }
     if (check("sizeof"))
     {
+        token tok = prev_token();
         if (check("("))
         {
             if (type_name* tn = parse_type_name())
             {
                 sizeof_type_expression* se = new sizeof_type_expression;
+                se->op = tok;
                 se->tn = tn;
                 accepts(")");
                 return se;
@@ -183,6 +193,7 @@ unary_expression* parser::parse_unary_expression()
         if (unary_expression* ue = parse_unary_expression())
         {
             sizeof_expression* se = new sizeof_expression;
+            se->op = tok;
             se->ue = ue;
             return se;
         }
@@ -224,6 +235,7 @@ multiplicative_expression* parser::parse_multiplicative_expression()
         if (check("*"))
         {
             mul_expression* me = new mul_expression;
+            me->op = prev_token();
             me->lhs = lhs;
             me->rhs = accept(parse_cast_expression());
             lhs = me;
@@ -231,6 +243,7 @@ multiplicative_expression* parser::parse_multiplicative_expression()
         else if (check("/"))
         {
             div_expression* de = new div_expression;
+            de->op = prev_token();
             de->lhs = lhs;
             de->rhs = accept(parse_cast_expression());
             lhs = de;
@@ -238,6 +251,7 @@ multiplicative_expression* parser::parse_multiplicative_expression()
         else if (check("%"))
         {
             mod_expression* me = new mod_expression;
+            me->op = prev_token();
             me->lhs = lhs;
             me->rhs = accept(parse_cast_expression());
             lhs = me;
@@ -262,6 +276,7 @@ additive_expression* parser::parse_additive_expression()
         if (check("+"))
         {
             add_expression* ae = new add_expression;
+            ae->op = prev_token();
             ae->lhs = lhs;
             ae->rhs = accept(parse_multiplicative_expression());
             lhs = ae;
@@ -269,6 +284,7 @@ additive_expression* parser::parse_additive_expression()
         else if (check("-"))
         {
             sub_expression* se = new sub_expression;
+            se->op = prev_token();
             se->lhs = lhs;
             se->rhs = accept(parse_multiplicative_expression());
             lhs = se;
@@ -324,6 +340,7 @@ relational_expression* parser::parse_relational_expression()
         if (check("<"))
         {
             less_expression* le = new less_expression;
+            le->op = prev_token();
             le->lhs = lhs;
             le->rhs = accept(parse_shift_expression());
             lhs = le;
@@ -331,6 +348,7 @@ relational_expression* parser::parse_relational_expression()
         else if (check(">"))
         {
             greater_expression* ge = new greater_expression;
+            ge->op = prev_token();
             ge->lhs = lhs;
             ge->rhs = accept(parse_shift_expression());
             lhs = ge;
@@ -338,6 +356,7 @@ relational_expression* parser::parse_relational_expression()
         else if (check("<="))
         {
             less_equal_expression* le = new less_equal_expression;
+            le->op = prev_token();
             le->lhs = lhs;
             le->rhs = accept(parse_shift_expression());
             lhs = le;
@@ -345,6 +364,7 @@ relational_expression* parser::parse_relational_expression()
         else if (check(">="))
         {
             greater_equal_expression* ge = new greater_equal_expression;
+            ge->op = prev_token();
             ge->lhs = lhs;
             ge->rhs = accept(parse_shift_expression());
             lhs = ge;
@@ -369,6 +389,7 @@ equality_expression* parser::parse_equality_expression()
         if (check("=="))
         {
             equal_expression* ee = new equal_expression;
+            ee->op = prev_token();
             ee->lhs = lhs;
             ee->rhs = accept(parse_relational_expression());
             lhs = ee;
@@ -376,6 +397,7 @@ equality_expression* parser::parse_equality_expression()
         if (check("!="))
         {
             not_equal_expression* ne = new not_equal_expression;
+            ne->op = prev_token();
             ne->lhs = lhs;
             ne->rhs = accept(parse_relational_expression());
             lhs = ne;
@@ -398,6 +420,7 @@ and_expression* parser::parse_and_expression()
     while (check("&"))
     {
         and_expression* ae = new and_expression;
+        ae->op = prev_token();
         ae->lhs = lhs;
         ae->rhs = accept(parse_equality_expression());
         lhs = ae;
@@ -417,6 +440,7 @@ exclusive_or_expression* parser::parse_exclusive_or_expression()
     while (check("^"))
     {
         exclusive_or_expression* xe = new exclusive_or_expression;
+        xe->op = prev_token();
         xe->lhs = lhs;
         xe->rhs = accept(parse_and_expression());
         lhs = xe;
@@ -436,6 +460,7 @@ inclusive_or_expression* parser::parse_inclusive_or_expression()
     while (check("|"))
     {
         inclusive_or_expression* oe = new inclusive_or_expression;
+        oe->op = prev_token();
         oe->lhs = lhs;
         oe->rhs = accept(parse_exclusive_or_expression());
         lhs = oe;
@@ -455,6 +480,7 @@ logical_and_expression* parser::parse_logical_and_expression()
     while (check("&&"))
     {
         logical_and_expression* ae = new logical_and_expression;
+        ae->op = prev_token();
         ae->lhs = lhs;
         ae->rhs = accept(parse_inclusive_or_expression());
         lhs = ae;
@@ -474,6 +500,7 @@ logical_or_expression* parser::parse_logical_or_expression()
     while (check("||"))
     {
         logical_or_expression* oe = new logical_or_expression;
+        oe->op = prev_token();
         oe->lhs = lhs;
         oe->rhs = accept(parse_logical_and_expression());
         lhs = oe;

@@ -316,6 +316,7 @@ struct unary_expression
     virtual Value* make_lvalue();
     virtual Value* make_rvalue();
 
+    token op;
     postfix_expression* pe = nullptr;
 };
 
@@ -440,6 +441,7 @@ struct multiplicative_expression
     virtual Value* make_lvalue();
     virtual Value* make_rvalue();
 
+    token op;
     cast_expression* ce = nullptr;
 };
 
@@ -483,6 +485,7 @@ struct additive_expression
     virtual Value* make_lvalue();
     virtual Value* make_rvalue();
 
+    token op;
     multiplicative_expression* me = nullptr;
 };
 
@@ -547,6 +550,7 @@ struct relational_expression
     virtual Value* make_lvalue();
     virtual Value* make_rvalue();
 
+    token op;
     shift_expression* se = nullptr;
 };
 
@@ -601,6 +605,7 @@ struct equality_expression
     virtual Value* make_lvalue();
     virtual Value* make_rvalue();
 
+    token op;
     relational_expression* re = nullptr;
 };
 
@@ -633,6 +638,7 @@ struct and_expression
     Value* make_lvalue();
     Value* make_rvalue();
 
+    token op;
     equality_expression* ee = nullptr;
     and_expression* lhs = nullptr;
     equality_expression* rhs = nullptr;
@@ -645,6 +651,7 @@ struct exclusive_or_expression
     Value* make_lvalue();
     Value* make_rvalue();
 
+    token op;
     and_expression* ae = nullptr;
     exclusive_or_expression* lhs = nullptr;
     and_expression* rhs = nullptr;
@@ -657,6 +664,7 @@ struct inclusive_or_expression
     Value* make_lvalue();
     Value* make_rvalue();
 
+    token op;
     exclusive_or_expression* xe = nullptr;
     inclusive_or_expression* lhs = nullptr;
     exclusive_or_expression* rhs = nullptr;
@@ -669,6 +677,7 @@ struct logical_and_expression
     Value* make_rvalue();
     Value* make_lvalue();
 
+    token op;
     inclusive_or_expression* oe = nullptr;
     logical_and_expression* lhs = nullptr;
     inclusive_or_expression* rhs = nullptr;
@@ -681,6 +690,7 @@ struct logical_or_expression
     Value* make_lvalue();
     Value* make_rvalue();
 
+    token op;
     logical_and_expression* ae = nullptr;
     logical_or_expression* lhs = nullptr;
     logical_and_expression* rhs = nullptr;
@@ -921,7 +931,7 @@ struct function_definition
 {
     ~function_definition();
     void print();
-    Value* codegen();
+    void codegen();
 
     token get_identifier();
     void resolve_gotos();
@@ -938,7 +948,7 @@ struct external_declaration
 {
     ~external_declaration();
     void print();
-    Value* codegen();
+    void codegen();
 
     function_definition* fd = nullptr;
     declaration* decl = nullptr;
@@ -948,7 +958,7 @@ struct translation_unit
 {
     ~translation_unit();
     void print();
-    Value* codegen(const char* filename);
+    void codegen(const char* filename);
 
     scope* sc;
     vector<external_declaration*> ed;

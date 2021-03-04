@@ -40,10 +40,9 @@ int task_cdef(const char* filename, bool print, bool compile)
     try
     {
         translation_unit* tu = parser(tokens).parse();
+        tu->codegen(filename);
         if (compile)
         {
-            tu->codegen(filename);
-
             string fn = filename;
             size_t pos = fn.find('/');
             if (pos != fn.npos)
