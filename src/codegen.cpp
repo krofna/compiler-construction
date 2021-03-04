@@ -7,6 +7,8 @@ static unique_ptr<IRBuilder<>> builder, alloca_builder;
 static BasicBlock *continue_block = nullptr;
 static BasicBlock *break_block = nullptr;
 
+extern string unescape(const string& s);
+
 static AllocaInst *create_alloca(Type *type, const string &var_name)
 {
     alloca_builder->SetInsertPoint(alloca_builder->GetInsertBlock(),
@@ -267,7 +269,8 @@ Value* primary_expression::make_rvalue()
     }
     else if (tok.type == STRING_LITERAL)
     {
-        return builder->CreateGlobalStringPtr(StringRef(tok.str.c_str() + 1, tok.str.size() - 2));
+        string str = unescape(tok.str);
+        return builder->CreateGlobalStringPtr(StringRef(str.c_str(), str.size()));
     }
     error::reject(tok);
 }
