@@ -242,7 +242,7 @@ Value* primary_expression::make_rvalue()
             return builder->CreateLoad(vo->store);
         if (function_object* fo = find_function(tok.str))
             return fo->function;
-        assert(false);
+        error::reject(tok);
     }
     else if (tok.type == CONSTANT)
     {
@@ -261,10 +261,7 @@ Value* primary_expression::make_rvalue()
     {
         return builder->CreateGlobalStringPtr(StringRef(tok.str.c_str() + 1, tok.str.size() - 2));
     }
-    else
-    {
-        // error
-    }
+    error::reject(tok);
 }
 
 Value* parenthesized_expression::make_rvalue()
