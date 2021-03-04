@@ -312,6 +312,10 @@ Value* subscript_expression::make_lvalue()
 Value* call_expression::make_rvalue()
 {
     Value* lhs = pfe->make_rvalue();
+    // todo: stopgap
+    if (!(lhs->getType()->isPointerTy() && lhs->getType()->getContainedType(0)->isFunctionTy()))
+        return ConstantInt::get(Type::getInt32Ty(context), 0);
+
     Function *function = (Function*)lhs;
     FunctionType *ftype = function->getFunctionType();
 
