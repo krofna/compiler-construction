@@ -150,7 +150,7 @@ private:
     type_name* parse_type_name();
     declaration_specifiers* parse_declaration_specifiers();
     vector<parameter_declaration*> parse_parameter_type_list();
-    pointer* parse_pointer();
+    vector<pointer*> parse_pointer();
     parameter_declaration* parse_parameter_declaration();
     direct_declarator* parse_nof_direct_declarator();
     direct_declarator* parse_direct_declarator();

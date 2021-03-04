@@ -584,7 +584,7 @@ declaration* parser::parse_declaration()
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinition
 
-                Type *type = make_type(ds->type, d);
+                Type *type = make_ptr(ds->type, d);
                 table[identifier.str] = new variable_object(type);
             }
             else
@@ -816,10 +816,11 @@ function_specifier* parser::parse_function_specifier()
 declarator* parser::parse_declarator()
 {
     token_iter old = tokit;
-    if (pointer* p = parse_pointer())
+    vector<pointer*> ptrs = parse_pointer();
+    if (!ptrs.empty())
     {
         declarator* decl = new declarator;
-        decl->p = p;
+        decl->p = ptrs;
         decl->dd = parse_direct_declarator();
         if (!decl->dd)
         {
@@ -899,18 +900,17 @@ vector<parameter_declaration*> parser::parse_parameter_type_list()
     return pl;
 }
 
-pointer* parser::parse_pointer()
+vector<pointer*> parser::parse_pointer()
 {
-    if (check("*"))
+    vector<pointer*> ptrs;
+    while (check("*"))
     {
-        pointer* p = new pointer;
+        pointer *p = new pointer;
         while (type_qualifier* tq = parse_type_qualifier())
             p->tql.push_back(tq);
-        if (pointer* nxt = parse_pointer())
-            p->p = nxt;
-        return p;
+        ptrs.push_back(p);
     }
-    return nullptr;
+    return ptrs;
 }
 
 direct_declarator* parser::parse_nof_direct_abstract_declarator()
@@ -944,10 +944,11 @@ direct_declarator* parser::parse_direct_abstract_declarator()
 
 declarator* parser::parse_abstract_declarator()
 {
-    if (pointer* p = parse_pointer())
+    vector<pointer*> ptrs = parse_pointer();
+    if (!ptrs.empty())
     {
         declarator* ad = new declarator;
-        ad->p = p;
+        ad->p = ptrs;
         if (direct_declarator* dad = parse_direct_abstract_declarator())
             ad->dd = dad;
         return ad;
@@ -1243,7 +1244,7 @@ function_definition* parser::parse_function_definition()
     token identifier = fd->get_identifier();
 
     // check return type
-    if (!decl->p)
+    if (decl->p.empty())
     {
         struct_or_union_specifier* ss = fd->ds->sus;
         if (ss && !find_tag(ss->id.str))
@@ -1293,7 +1294,7 @@ function_definition* parser::parse_function_definition()
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinicija
 
-                Type *type = make_type(pard->ds->type, decl);
+                Type *type = make_ptr(pard->ds->type, decl);
                 table[identifier.str] = new variable_object(type);
             }
             else

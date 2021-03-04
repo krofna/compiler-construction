@@ -399,7 +399,7 @@ bool direct_declarator::is_definition()
 
 bool parenthesized_declarator::is_definition()
 {
-    if (decl->p && decl->dd->is_identifier())
+    if (!decl->p.empty() && decl->dd->is_identifier())
         return true;
     return decl->dd->is_definition();
 }
@@ -426,7 +426,7 @@ bool function_declarator::is_pointer()
 
 bool declarator::is_pointer()
 {
-    if (p)
+    if (!p.empty())
         return true;
     return dd->is_pointer();
 }
@@ -453,17 +453,9 @@ int function_declarator::num_pointers()
     return dd->num_pointers();
 }
 
-int pointer::num_pointers()
-{
-    int num = p ? p->num_pointers() : 0;
-    return num + 1;
-}
-
 int declarator::num_pointers()
 {
-    int num = 0;
-    if (p)
-        num += p->num_pointers();
+    int num = p.size();
     if (dd)
         num += dd->num_pointers();
     return num;

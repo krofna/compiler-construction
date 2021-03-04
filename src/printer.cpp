@@ -181,28 +181,28 @@ void function_declarator::print()
 void pointer::print()
 {
     pout << "*";
+    bool flg = false;
     for (type_qualifier* tq : tql)
-        tq->print();
-
-    if (p)
     {
-        pout << "(";
-        p->print();
-        pout << ")";
+        if (flg)
+            pout << " ";
+        flg = true;
+        tq->print();
     }
 }
 
 void declarator::print()
 {
-    if (p)
+    for (int i = 0; i < p.size(); ++i)
     {
         pout << "(";
-        p->print();
+        p[i]->print();
     }
 
     if (dd)
         dd->print();
-    if (p)
+
+    for (int i = 0; i < p.size(); ++i)
         pout << ")";
 }
 
@@ -670,7 +670,6 @@ void goto_label::print()
 
 void case_label::print()
 {
-
     if (pout.buffer.back() == '\t')
         pout.buffer.pop_back();
 
@@ -760,10 +759,11 @@ void while_statement::print()
 
 void do_while_statement::print()
 {
-    pout << "do";
+    pout << "do ";
     stat->print();
-    pout << "while";
+    pout << " while (";
     expr->print();
+    pout << ");";
 }
 
 void for_statement::print()
@@ -795,9 +795,12 @@ void break_statement::print()
 
 void return_statement::print()
 {
-    pout << "return ";
+    pout << "return";
     if (expr)
+    {
+        pout << " ";
         expr->print();
+    }
     pout << ";";
 }
 

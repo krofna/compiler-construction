@@ -30,7 +30,7 @@ static Value *create_variable(Type *type, const string &var_name)
     return create_alloca(type, var_name);
 }
 
-Value *truncate(Value* cond)
+static Value *truncate(Value* cond)
 {
     if (cond->getType()->isIntegerTy(1))
         return cond;
@@ -39,7 +39,7 @@ Value *truncate(Value* cond)
     return builder->CreateICmpNE(cond, zero);
 }
 
-Value *cast(Value *val, Type *type)
+static Value *cast(Value *val, Type *type)
 {
     if (val->getType()->isIntegerTy() && type->isIntegerTy())
         return builder->CreateZExtOrTrunc(val, type);
@@ -910,29 +910,28 @@ Value* expression::make_lvalue()
     error::reject();
 }
 
-Value* goto_label::codegen()
+void goto_label::codegen()
 {
     builder->CreateBr(block);
     builder->SetInsertPoint(block);
     stat->codegen();
 }
 
-Value* case_label::codegen()
+void case_label::codegen()
 {
 }
 
-Value* default_label::codegen()
+void default_label::codegen()
 {
 }
 
-Value* expression_statement::codegen()
+void expression_statement::codegen()
 {
     if (expr)
-        return expr->make_rvalue();
-    return nullptr;
+        expr->make_rvalue();
 }
 
-Value* if_statement::codegen()
+void if_statement::codegen()
 {
     Function *function = builder->GetInsertBlock()->getParent();
 
@@ -958,11 +957,11 @@ Value* if_statement::codegen()
     builder->SetInsertPoint(end_block);
 }
 
-Value* switch_statement::codegen()
+void switch_statement::codegen()
 {
 }
 
-Value* while_statement::codegen()
+void while_statement::codegen()
 {
     Function *function = builder->GetInsertBlock()->getParent();
 
@@ -987,7 +986,7 @@ Value* while_statement::codegen()
     continue_block = break_block = nullptr;
 }
 
-Value* do_while_statement::codegen()
+void do_while_statement::codegen()
 {
     Function *function = builder->GetInsertBlock()->getParent();
 
@@ -1011,7 +1010,7 @@ Value* do_while_statement::codegen()
     continue_block = break_block = nullptr;
 }
 
-Value* for_statement::codegen()
+void for_statement::codegen()
 {
     Function *function = builder->GetInsertBlock()->getParent();
 
@@ -1043,23 +1042,25 @@ Value* for_statement::codegen()
     continue_block = break_block = nullptr;
 }
 
-Value* goto_statement::codegen()
+void goto_statement::codegen()
 {
     builder->CreateBr(gl->block);
 }
 
-Value* break_statement::codegen()
+void break_statement::codegen()
 {
     builder->CreateBr(break_block);
 }
 
-Value* continue_statement::codegen()
+void continue_statement::codegen()
 {
     builder->CreateBr(continue_block);
 }
 
-Value* return_statement::codegen()
+void return_statement::codegen()
 {
+    Function *function = builder->GetInsertBlock()->getParent();
+
     if (expr)
     {
         Value *val = expr->make_rvalue();
@@ -1070,7 +1071,6 @@ Value* return_statement::codegen()
         builder->CreateRetVoid();
     }
 
-    Function *function = builder->GetInsertBlock()->getParent();
     BasicBlock *dead_block = BasicBlock::Create(
         context,
         "DEAD_BLOCK",
@@ -1080,17 +1080,17 @@ Value* return_statement::codegen()
     builder->SetInsertPoint(dead_block);
 }
 
-Value* declaration_item::codegen()
+void declaration_item::codegen()
 {
-    return decl->codegen();
+    decl->codegen();
 }
 
-Value* statement_item::codegen()
+void statement_item::codegen()
 {
-    return stat->codegen();
+    stat->codegen();
 }
 
-Value* compound_statement::codegen()
+void compound_statement::codegen()
 {
     if (sc) scopes.push_back(sc);
     for (block_item* b : bi)
@@ -1103,12 +1103,14 @@ Value* function_definition::codegen()
     scopes.push_back(sc);
 
     function_object *fo = find_function(get_identifier().str);
-
-    fo->function = Function::Create(
-        fo->type,
-        GlobalValue::ExternalLinkage,
-        get_identifier().str,
-        *module);
+    if (!fo->function)
+    {
+        fo->function = Function::Create(
+            fo->type,
+            GlobalValue::ExternalLinkage,
+            get_identifier().str,
+            *module);
+    }
 
     BasicBlock *entry_block = BasicBlock::Create(
         context,

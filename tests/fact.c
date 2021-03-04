@@ -1,3 +1,5 @@
+int printf(const char*, ...);
+
 int g(int);
 
 int f(int x) {

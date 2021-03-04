@@ -4,10 +4,6 @@
 #include "llvm/IR/IRBuilder.h"
 using namespace llvm;
 
-struct node
-{
-};
-
 struct object
 {
     virtual ~object()
@@ -197,10 +193,8 @@ struct function_declarator : direct_declarator
 struct pointer
 {
     void print();
-    int num_pointers();
 
     vector<type_qualifier*> tql;
-    pointer* p = nullptr;
 };
 
 struct declarator
@@ -212,7 +206,7 @@ struct declarator
     int num_pointers();
     Value* codegen();
 
-    pointer* p = nullptr;
+    vector<pointer*> p;
     direct_declarator* dd = nullptr;
 };
 
@@ -740,7 +734,7 @@ struct expression
 struct statement
 {
     virtual ~statement() = 0;
-    virtual Value* codegen() = 0;
+    virtual void codegen() = 0;
     virtual void print() = 0;
 };
 
@@ -748,7 +742,7 @@ struct labeled_statement : statement
 {
     virtual ~labeled_statement();
     virtual void print() = 0;
-    virtual Value* codegen() = 0;
+    virtual void codegen() = 0;
 
     statement* stat;
 };
@@ -756,7 +750,7 @@ struct labeled_statement : statement
 struct goto_label : labeled_statement
 {
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     BasicBlock *block;
     token id;
@@ -766,7 +760,7 @@ struct case_label : labeled_statement
 {
     ~case_label();
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     constant_expression* ce;
 };
@@ -774,14 +768,14 @@ struct case_label : labeled_statement
 struct default_label : labeled_statement
 {
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 };
 
 struct expression_statement : statement
 {
     ~expression_statement();
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     expression* expr = nullptr;
 };
@@ -790,14 +784,14 @@ struct selection_statement : statement
 {
     virtual ~selection_statement() = 0;
     virtual void print() = 0;
-    virtual Value* codegen() = 0;
+    virtual void codegen() = 0;
 };
 
 struct if_statement : selection_statement
 {
     ~if_statement();
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     expression* expr;
     statement* stat;
@@ -807,7 +801,7 @@ struct if_statement : selection_statement
 struct switch_statement : selection_statement
 {
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     expression* expr;
     statement* stat;
@@ -817,14 +811,14 @@ struct iteration_statement : statement
 {
     virtual ~iteration_statement() = 0;
     virtual void print() = 0;
-    virtual Value* codegen() = 0;
+    virtual void codegen() = 0;
 };
 
 struct while_statement : iteration_statement
 {
     ~while_statement();
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     expression* expr;
     statement* stat;
@@ -834,7 +828,7 @@ struct do_while_statement : iteration_statement
 {
     ~do_while_statement();
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     statement* stat;
     expression* expr;
@@ -844,7 +838,7 @@ struct for_statement : iteration_statement
 {
     ~for_statement();
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     expression* expr1;
     expression* expr2;
@@ -855,13 +849,13 @@ struct for_statement : iteration_statement
 struct jump_statement : statement
 {
     virtual void print() = 0;
-    virtual Value* codegen() = 0;
+    virtual void codegen() = 0;
 };
 
 struct goto_statement : jump_statement
 {
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     goto_label *gl;
     token id;
@@ -870,20 +864,20 @@ struct goto_statement : jump_statement
 struct continue_statement : jump_statement
 {
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 };
 
 struct break_statement : jump_statement
 {
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 };
 
 struct return_statement : jump_statement
 {
     ~return_statement();
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     expression* expr;
 };
@@ -892,14 +886,14 @@ struct block_item
 {
     virtual ~block_item() = 0;
     virtual void print() = 0;
-    virtual Value* codegen() = 0;
+    virtual void codegen() = 0;
 };
 
 struct declaration_item : block_item
 {
     ~declaration_item();
     void print();
-    Value* codegen();
+    void codegen();
 
     declaration* decl;
 };
@@ -908,7 +902,7 @@ struct statement_item : block_item
 {
     ~statement_item();
     void print();
-    Value* codegen();
+    void codegen();
 
     statement* stat;
 };
@@ -917,7 +911,7 @@ struct compound_statement : statement
 {
     ~compound_statement();
     void print();
-    virtual Value* codegen();
+    virtual void codegen();
 
     scope* sc = nullptr;
     vector<block_item*> bi;

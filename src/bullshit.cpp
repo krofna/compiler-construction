@@ -114,7 +114,7 @@ tag::tag(struct_or_union_specifier* ss)
 
             int next = indices.size();
             indices[tok.str] = next;
-            members.push_back(make_type(sd->type, dec));
+            members.push_back(make_ptr(sd->type, dec));
         }
     }
     type->setBody(members);
@@ -136,13 +136,8 @@ Type* register_type(struct_or_union_specifier* ss)
 {
     if (!ss->has_sds)
     {
-        for (auto sit = scopes.rbegin(); sit != scopes.rend(); ++sit)
-        {
-            auto& table = (*sit)->tags;
-            auto it = table.find(ss->id.str);
-            if (it != table.end())
-                return it->second->type;
-        }
+        if (tag* t = find_tag(ss->id.str))
+            return t->type;
         return Type::getInt8Ty(context);
     }
 
