@@ -57,6 +57,7 @@ postfix_expression* parser::parse_postfix_expression()
         if (check("["))
         {
             subscript_expression* se = new subscript_expression;
+            se->op = prev_token();
             se->pfe = e;
             se->expr = accept(parse_expression());
             accepts("]");
@@ -309,6 +310,7 @@ shift_expression* parser::parse_shift_expression()
         if (check("<<"))
         {
             lshift_expression* ae = new lshift_expression;
+            ae->op = prev_token();
             ae->lhs = lhs;
             ae->rhs = accept(parse_additive_expression());
             lhs = ae;
@@ -316,6 +318,7 @@ shift_expression* parser::parse_shift_expression()
         else if (check(">>"))
         {
             rshift_expression* ae = new rshift_expression;
+            ae->op = prev_token();
             ae->lhs = lhs;
             ae->rhs = accept(parse_additive_expression());
             lhs = ae;

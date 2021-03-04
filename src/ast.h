@@ -262,6 +262,7 @@ struct subscript_expression : postfix_expression
     Value* make_lvalue();
     Value* make_rvalue();
 
+    token op;
     expression* expr;
 };
 
@@ -518,6 +519,7 @@ struct shift_expression
     virtual Value* make_lvalue();
     virtual Value* make_rvalue();
 
+    token op;
     additive_expression* ae = nullptr;
 };
 

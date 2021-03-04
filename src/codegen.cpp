@@ -300,7 +300,7 @@ Value* subscript_expression::make_lvalue()
     Value *l = pfe->make_rvalue();
     Value *v = create_add(l, expr->make_rvalue());
     if (!v)
-        error::reject();
+        error::reject(op);
     return v;
 }
 
@@ -681,7 +681,7 @@ Value* rshift_expression::make_rvalue()
 
 Value* rshift_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* lshift_expression::make_rvalue()
@@ -693,7 +693,7 @@ Value* lshift_expression::make_rvalue()
 
 Value* lshift_expression::make_lvalue()
 {
-    error::reject();
+    error::reject(op);
 }
 
 Value* relational_expression::make_rvalue()
