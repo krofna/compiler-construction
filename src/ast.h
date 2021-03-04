@@ -214,7 +214,7 @@ struct declaration
 {
     ~declaration();
     void print();
-    Value* codegen();
+    void codegen();
 
     declaration_specifiers* ds;
     vector<declarator*> d;

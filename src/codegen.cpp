@@ -147,6 +147,14 @@ static Value *create_div(Value *lhs, Value *rhs)
     return builder->CreateSDiv(lhs, rhs);
 }
 
+static Value *create_rem(Value *lhs, Value *rhs)
+{
+    if (!adjust_int(lhs, rhs))
+        return nullptr;
+
+    return builder->CreateSRem(lhs, rhs);
+}
+
 static Value *get_size(Type *type)
 {
     Type *rt = Type::getInt32Ty(context);
@@ -218,7 +226,7 @@ Value* declarator::codegen()
     }
 }
 
-Value* declaration::codegen()
+void declaration::codegen()
 {
     for (declarator* de : d)
         de->codegen();
@@ -611,7 +619,10 @@ Value* mod_expression::make_rvalue()
 {
     Value* l = lhs->make_rvalue();
     Value* r = rhs->make_rvalue();
-    return builder->CreateSRem(l, r);
+    Value *v = create_rem(l, r);
+    if (!v)
+        error::reject(op);
+    return v;
 }
 
 Value* mod_expression::make_lvalue()
@@ -1020,7 +1031,9 @@ Value* assignment_expression::make_rvalue()
     }
     if (op.str == "%=")
     {
-        Value *v = builder->CreateSRem(lv, r);
+        Value *v = create_rem(lv, r);
+        if (!v)
+            error::reject(op);
         store(v, l);
         return v;
     }
