@@ -71,7 +71,7 @@ int task_cdef(const char* filename, bool print, bool compile)
 
 int main(int argc, char **argv)
 {
-    if (argc != 3)
+    if (argc < 2 || argc > 3)
     {
         cerr << "program takes file name";
         return EXIT_FAILURE;
@@ -80,14 +80,19 @@ int main(int argc, char **argv)
     sys::PrintStackTraceOnErrorSignal(argv[0]);
     PrettyStackTraceProgram X(argc, argv);
 
-    string opt = argv[1];
-    if (opt == "--tokenize")
-        return task_b(argv[2]);
-    if (opt == "--parse")
-        return task_cdef(argv[2], false, false);
-    if (opt == "--print-ast")
-        return task_cdef(argv[2], true, false);
-    if (opt == "--compile")
-        return task_cdef(argv[2], false, true);
+    if (argc == 3)
+    {
+        string opt = argv[1];
+        if (opt == "--tokenize")
+            return task_b(argv[2]);
+        if (opt == "--parse")
+            return task_cdef(argv[2], false, false);
+        if (opt == "--print-ast")
+            return task_cdef(argv[2], true, false);
+        if (opt == "--compile")
+            return task_cdef(argv[2], false, true);
+    }
+    else
+        return task_cdef(argv[1], false, true);
     return EXIT_FAILURE;
 }
