@@ -219,6 +219,10 @@ Value* declarator::codegen()
     if (dd->is_identifier() || dd->is_definition())
     {
         variable_object* vo = find_variable(identifier);
+        if (vo->type->isVoidTy())
+            error::reject(get_identifier());
+        if (vo->type->isStructTy() && ((StructType*)vo->type)->isOpaque())
+            error::reject(get_identifier());
         vo->store = create_variable(vo->type, identifier);
         return vo->store;
     }
@@ -574,6 +578,8 @@ Value* unary_not_expression::make_rvalue()
     Value* r = ce->make_rvalue();
     Value *zero = builder->getInt32(0);
     r = cast(r, zero->getType());
+    if (!r)
+        error::reject(op);
     return builder->CreateICmpEQ(r, zero);
 }
 
@@ -607,7 +613,10 @@ Value* cast_expression::make_rvalue()
 {
     if (ue)
         return ue->make_rvalue();
-    return cast(ce->make_rvalue(), tn->type);
+    Value *v = cast(ce->make_rvalue(), tn->type);
+    if (!v)
+        error::reject(op);
+    return v;
 }
 
 Value* cast_expression::make_lvalue()
@@ -925,6 +934,8 @@ Value* logical_and_expression::make_rvalue()
     builder->CreateBr(header_block);
     builder->SetInsertPoint(header_block);
     Value *cond = truncate(lhs->make_rvalue());
+    if (!cond)
+        error::reject(op);
 
     BasicBlock *true_block = BasicBlock::Create(context, "true", function);
     BasicBlock *false_block = BasicBlock::Create(context, "false", function);
@@ -934,7 +945,9 @@ Value* logical_and_expression::make_rvalue()
     builder->CreateCondBr(cond, true_block, false_block);
 
     builder->SetInsertPoint(true_block);
-    Value *tcond = rhs->make_rvalue();
+    Value *tcond = truncate(rhs->make_rvalue());
+    if (!tcond)
+        error::reject(op);
     builder->CreateCondBr(tcond, ttrue_block, false_block);
 
     builder->SetInsertPoint(ttrue_block);
@@ -969,6 +982,8 @@ Value* logical_or_expression::make_rvalue()
     builder->CreateBr(header_block);
     builder->SetInsertPoint(header_block);
     Value *cond = truncate(lhs->make_rvalue());
+    if (!cond)
+        error::reject(op);
 
     BasicBlock *true_block = BasicBlock::Create(context, "true", function);
     BasicBlock *false_block = BasicBlock::Create(context, "false", function);
@@ -978,7 +993,9 @@ Value* logical_or_expression::make_rvalue()
     builder->CreateCondBr(cond, true_block, false_block);
 
     builder->SetInsertPoint(false_block);
-    Value *fcond = rhs->make_rvalue();
+    Value *fcond = truncate(rhs->make_rvalue());
+    if (!fcond)
+        error::reject(op);
     builder->CreateCondBr(fcond, true_block, ffalse_block);
 
     builder->SetInsertPoint(true_block);
@@ -1018,6 +1035,8 @@ Value* conditional_expression::make_rvalue()
 
     builder->SetInsertPoint(header_block);
     Value *cond = truncate(expr1->make_rvalue());
+    if (!cond)
+        error::reject(op);
     builder->CreateCondBr(cond, true_block, false_block);
 
     builder->SetInsertPoint(true_block);
@@ -1028,11 +1047,11 @@ Value* conditional_expression::make_rvalue()
     Value *fval = expr3->make_rvalue();
     builder->CreateBr(end_block);
 
+    if (tval->getType() != fval->getType())
+        error::reject(op);
+
     builder->SetInsertPoint(end_block);
-    // TODO: hmm??
-    // ako su tipovi kompatibilni kastaj, inače error
-    // tests/ternary.c
-    PHINode *pn = builder->CreatePHI(Type::getInt32Ty(context), 2, "phi");
+    PHINode *pn = builder->CreatePHI(tval->getType(), 2, "phi");
     pn->addIncoming(tval, true_block);
     pn->addIncoming(fval, false_block);
     return pn;
@@ -1195,6 +1214,8 @@ void if_statement::codegen()
     builder->CreateBr(header_block);
     builder->SetInsertPoint(header_block);
     Value *cond = truncate(expr->make_rvalue());
+    if (!cond)
+        error::reject(op);
     builder->CreateCondBr(cond, then_block, else_block);
 
     builder->SetInsertPoint(then_block);

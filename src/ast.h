@@ -186,6 +186,7 @@ struct function_declarator : direct_declarator
     bool is_noparam();
     virtual Type *gen_type(Type *type);
 
+    token op;
     direct_declarator* dd;
     vector<parameter_declaration*> pl;
 };
@@ -431,6 +432,7 @@ struct cast_expression
     Value* make_lvalue();
     Value* make_rvalue();
 
+    token op;
     unary_expression* ue = nullptr;
     type_name* tn = nullptr;
     cast_expression* ce = nullptr;

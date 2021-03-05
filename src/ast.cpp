@@ -461,9 +461,7 @@ bool function_declarator::is_noparam()
         return false;
 
     Type *type = pl.front()->ds->type;
-    if (pl.front()->decl)
-        type = pl.front()->decl->gen_type(type);
-    return type->isVoidTy();
+    return type->isVoidTy() && !pl.front()->decl;
 }
 
 Type *direct_declarator::gen_type(Type *type)
@@ -486,10 +484,14 @@ Type *function_declarator::gen_type(Type *type)
         {
             if (pd)
             {
+                Type *type = pd->ds->type;
                 if (pd->decl)
-                    arguments.push_back(pd->decl->gen_type(pd->ds->type));
-                else
-                    arguments.push_back(pd->ds->type);
+                    type = pd->decl->gen_type(type);
+                if (type->isVoidTy())
+                    error::reject(op);
+                if (type->isStructTy() && ((StructType*)type)->isOpaque())
+                    error::reject(op);
+                arguments.push_back(type);
             }
             else
                 vararg = true;

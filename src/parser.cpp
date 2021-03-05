@@ -212,6 +212,7 @@ cast_expression* parser::parse_cast_expression()
     if (check("("))
     {
         cast_expression* ce = new cast_expression;
+        ce->op = prev_token();
         ce->tn = accept(parse_type_name());
         accepts(")");
         ce->ce = accept(parse_cast_expression());
@@ -900,6 +901,7 @@ direct_declarator* parser::parse_direct_declarator()
         if (check("("))
         {
             function_declarator* fd = new function_declarator;
+            fd->op = prev_token();
             fd->dd = dd;
             fd->pl = parse_parameter_type_list();
             accepts(")");
@@ -961,6 +963,7 @@ direct_declarator* parser::parse_direct_abstract_declarator()
         if (check("("))
         {
             function_declarator* fd = new function_declarator;
+            fd->op = prev_token();
             fd->dd = dd;
             fd->pl = parse_parameter_type_list();
             accepts(")");
