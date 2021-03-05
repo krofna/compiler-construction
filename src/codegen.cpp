@@ -1058,8 +1058,8 @@ Value* logical_or_expression::make_rvalue()
     builder->SetInsertPoint(merge_block);
 
     PHINode *pn = builder->CreatePHI(Type::getInt1Ty(context), 2, "phi");
-    pn->addIncoming(tval, ffalse_block);
-    pn->addIncoming(fval, true_block);
+    pn->addIncoming(tval, true_block);
+    pn->addIncoming(fval, ffalse_block);
     return pn;
 }
 
