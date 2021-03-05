@@ -491,7 +491,7 @@ Value* postfix_increment_expression::make_rvalue()
     if (!addr)
         error::reject(op);
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = create_add(oval, ConstantInt::get(oval->getType(), 1));
+    Value *nval = create_add(oval, ConstantInt::get(Type::getInt32Ty(context), 1));
     if (!nval)
         error::reject(op);
     store(nval, addr);
@@ -509,7 +509,7 @@ Value* postfix_decrement_expression::make_rvalue()
     if (!addr)
         error::reject(op);
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = create_sub(oval, ConstantInt::get(oval->getType(), 1));
+    Value *nval = create_sub(oval, ConstantInt::get(Type::getInt32Ty(context), 1));
     if (!nval)
         error::reject(op);
     store(nval, addr);
@@ -537,7 +537,7 @@ Value* prefix_increment_expression::make_rvalue()
     if (!addr)
         error::reject(op);
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = create_add(oval, ConstantInt::get(oval->getType(), 1));
+    Value *nval = create_add(oval, ConstantInt::get(Type::getInt32Ty(context), 1));
     if (!nval)
         error::reject(op);
     store(nval, addr);
@@ -555,7 +555,7 @@ Value* prefix_decrement_expression::make_rvalue()
     if (!addr)
         error::reject(op);
     Value *oval = builder->CreateLoad(addr);
-    Value *nval = create_sub(oval, ConstantInt::get(oval->getType(), 1));
+    Value *nval = create_sub(oval, ConstantInt::get(Type::getInt32Ty(context), 1));
     if (!nval)
         error::reject(op);
     store(nval, addr);
