@@ -438,39 +438,6 @@ declarator* declarator::unparenthesize()
     return this;
 }
 
-int direct_declarator::num_pointers()
-{
-    return 0;
-}
-
-int parenthesized_declarator::num_pointers()
-{
-    return decl->num_pointers();
-}
-
-int function_declarator::num_pointers()
-{
-    return dd->num_pointers();
-}
-
-int declarator::num_pointers()
-{
-    int num = p.size();
-    if (dd)
-        num += dd->num_pointers();
-    return num;
-}
-
-bool builtin_type_specifier::is_void()
-{
-    return tok.str == "void";
-}
-
-bool struct_or_union_specifier::is_void()
-{
-    return false;
-}
-
 token function_definition::get_identifier()
 {
     return dec->get_identifier();
@@ -478,18 +445,11 @@ token function_definition::get_identifier()
 
 bool function_declarator::is_noparam()
 {
-    if (pl.size() != 1)
+    if (pl.size() == 0)
+        return true;
+    if (pl.size() > 1)
         return false;
-
-    const vector<declspec*> &declspecs = pl.front()->ds->declspecs;
-    if (declspecs.size() != 1)
-        return false;
-
-    builtin_type_specifier* bs = dynamic_cast<builtin_type_specifier*>(declspecs.front());
-    if (!bs)
-        return false;
-
-    return bs->tok.str == "void";
+    return pl.front()->ds->type->isVoidTy();
 }
 
 variable_object::variable_object(Type *type) : type(type)

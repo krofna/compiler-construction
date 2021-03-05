@@ -2,29 +2,49 @@
 
 extern LLVMContext context;
 
-Type *make_ptr(Type* type, declarator* de)
+Type *direct_declarator::gen_type(Type *type)
 {
-    if (de)
-        for (int i = 0; i < de->num_pointers(); ++i)
-            type = PointerType::getUnqual(type);
     return type;
 }
 
-FunctionType *make_function(Type* type, declarator* de)
+Type *parenthesized_declarator::gen_type(Type *type)
+{
+    return decl->gen_type(type);
+}
+
+Type *function_declarator::gen_type(Type *type)
 {
     vector<Type*> arguments;
-    de = de->unparenthesize();
-    function_declarator* fd = dynamic_cast<function_declarator*>(de->dd);
     bool vararg = false;
-    if (!fd->is_noparam())
+    if (!is_noparam())
     {
-        for (parameter_declaration *pd : fd->pl)
+        for (parameter_declaration *pd : pl)
         {
             if (pd)
-                arguments.push_back(make_ptr(pd->ds->type, pd->decl));
+            {
+                if (pd->decl)
+                    arguments.push_back(pd->decl->gen_type(pd->ds->type));
+                else
+                    arguments.push_back(pd->ds->type);
+            }
             else
                 vararg = true;
         }
     }
-    return FunctionType::get(make_ptr(type, de), arguments, vararg);
+    type = FunctionType::get(type, arguments, vararg);
+    if (dd) type = dd->gen_type(type);
+    return type;
+}
+
+Type *declarator::gen_type(Type *type)
+{
+    for (int i = 0; i < p.size(); ++i)
+    {
+        if (type->isVoidTy())
+            type = Type::getInt8Ty(context);
+        type = PointerType::getUnqual(type);
+    }
+
+    if (dd) type = dd->gen_type(type);
+    return type;
 }

@@ -32,15 +32,6 @@ static Value *create_variable(Type *type, const string &var_name)
     return create_alloca(type, var_name);
 }
 
-static Value *truncate(Value* cond)
-{
-    if (cond->getType()->isIntegerTy(1))
-        return cond;
-
-    Value *zero = ConstantInt::get(cond->getType(), 0);
-    return builder->CreateICmpNE(cond, zero);
-}
-
 static Value *cast(Value *val, Type *type)
 {
     Type *vtype = val->getType();
@@ -56,7 +47,9 @@ static Value *cast(Value *val, Type *type)
     if (vtype->isPointerTy())
         return builder->CreatePtrToInt(val, type);
 
-    return builder->CreateSExtOrTrunc(val, type);
+    if (vtype->isIntegerTy() && type->isIntegerTy())
+        return builder->CreateSExtOrTrunc(val, type);
+    return nullptr;
 }
 
 static Value *store(Value *val, Value *ptr)
@@ -92,7 +85,7 @@ static bool adjust_ptr(Value *&lhs, Value *&rhs)
     if (ltype != rtype)
         return false;
 
-    Type *type = Type::getInt32Ty(context);
+    Type *type = Type::getInt64Ty(context);
     lhs = builder->CreatePtrToInt(lhs, type);
     rhs = builder->CreatePtrToInt(rhs, type);
     return true;
@@ -107,6 +100,22 @@ static bool adjust_int_ptr(Value *&lhs, Value *&rhs)
     return false;
 }
 
+static Value *truncate(Value* cond)
+{
+    Type *type = cond->getType();
+    if (type->isIntegerTy(1))
+        return cond;
+
+    if (type->isPointerTy())
+        cond = builder->CreatePtrToInt(cond, Type::getInt64Ty(context));
+
+    Value *zero = builder->getInt64(0);
+    if (!adjust_int_ptr(cond, zero))
+        return nullptr;
+
+    return builder->CreateICmpNE(cond, zero);
+}
+
 static Value *create_gep(Value *ptr, Value *idx)
 {
     idx = cast(idx, Type::getInt32Ty(context));
@@ -115,6 +124,8 @@ static Value *create_gep(Value *ptr, Value *idx)
 
 static Value *negative(Value *val)
 {
+    if (!val->getType()->isIntegerTy())
+        return nullptr;
     return builder->CreateSub(ConstantInt::get(val->getType(), 0), val);
 }
 
@@ -159,8 +170,7 @@ static Value *create_rem(Value *lhs, Value *rhs)
 
 static Value *get_size(Type *type)
 {
-    Type *rt = Type::getInt32Ty(context);
-    return builder->CreateTrunc(ConstantExpr::getSizeOf(type), rt);
+    return ConstantExpr::getSizeOf(type);
 }
 
 static Value *create_sub(Value *lhs, Value *rhs)
@@ -238,10 +248,12 @@ Value* primary_expression::make_lvalue()
 {
     if (tok.type == IDENTIFIER)
     {
-        // todo: može biti i poziv ili globalna
-        return find_variable(tok.str)->store;
+        variable_object* vo = find_variable(tok.str);
+        if (!vo)
+            return nullptr;
+        return vo->store;
     }
-    error::reject(tok);
+    return nullptr;
 }
 
 Value* primary_expression::make_rvalue()
@@ -294,12 +306,14 @@ Value* postfix_expression::make_lvalue()
 {
     if (pe)
         return pe->make_lvalue();
-    error::reject(op);
+    return nullptr;
 }
 
 Value* subscript_expression::make_rvalue()
 {
     Value *ptr = make_lvalue();
+    if (!ptr)
+        error::reject(op);
     return builder->CreateLoad(ptr);
 }
 
@@ -315,19 +329,18 @@ Value* subscript_expression::make_lvalue()
 Value* call_expression::make_rvalue()
 {
     Value* lhs = pfe->make_rvalue();
-    // todo: stopgap
     if (!(lhs->getType()->isPointerTy() && lhs->getType()->getContainedType(0)->isFunctionTy()))
-        return ConstantInt::get(Type::getInt32Ty(context), 0);
+        error::reject(opop);
 
-    Function *function = (Function*)lhs;
-    FunctionType *ftype = function->getFunctionType();
+    FunctionType *ftype = (FunctionType*)lhs->getType()->getContainedType(0);
 
+    // TODO: mjesto za error?
     if (ftype->params().size() != args.size())
     {
         if (ftype->params().size() > args.size())
-            error::reject();
+            error::reject(op);
         if (!ftype->isVarArg())
-            error::reject();
+            error::reject(op);
     }
 
     vector<Value*> cargs;
@@ -335,10 +348,13 @@ Value* call_expression::make_rvalue()
         cargs.push_back(args[i]->make_rvalue());
 
     for (int i = 0; i < ftype->params().size(); ++i)
-        if (cargs[i]->getType() != ftype->params()[i])
-            error::reject();
+    {
+        cargs[i] = cast(cargs[i], ftype->params()[i]);
+        if (!cargs[i])
+            error::reject(opop);
+    }
 
-    return builder->CreateCall(function, cargs);
+    return builder->CreateCall(ftype, lhs, cargs);
 }
 
 // TODO: forbid this nonsense
@@ -353,12 +369,17 @@ Value* call_expression::make_lvalue()
 Value* dot_expression::make_rvalue()
 {
     Value *ptr = make_lvalue();
+    if (!ptr)
+        error::reject(op);
     return builder->CreateLoad(ptr);
 }
 
 Value* dot_expression::make_lvalue()
 {
     Value *l = pfe->make_lvalue();
+    if (!l)
+        error::reject(op);
+
     Type *type = l->getType();
     if (type->getNumContainedTypes() != 1)
         error::reject(op);
@@ -383,6 +404,8 @@ Value* dot_expression::make_lvalue()
 Value* arrow_expression::make_rvalue()
 {
     Value *ptr = make_lvalue();
+    if (!ptr)
+        error::reject(op);
     return builder->CreateLoad(ptr);
 }
 
@@ -413,6 +436,8 @@ Value* arrow_expression::make_lvalue()
 Value* postfix_increment_expression::make_rvalue()
 {
     Value *addr = pfe->make_lvalue();
+    if (!addr)
+        error::reject(op);
     Value *oval = builder->CreateLoad(addr);
     Value *nval = create_add(oval, ConstantInt::get(oval->getType(), 1));
     if (!nval)
@@ -423,12 +448,14 @@ Value* postfix_increment_expression::make_rvalue()
 
 Value* postfix_increment_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* postfix_decrement_expression::make_rvalue()
 {
     Value *addr = pfe->make_lvalue();
+    if (!addr)
+        error::reject(op);
     Value *oval = builder->CreateLoad(addr);
     Value *nval = create_sub(oval, ConstantInt::get(oval->getType(), 1));
     if (!nval)
@@ -439,7 +466,7 @@ Value* postfix_decrement_expression::make_rvalue()
 
 Value* postfix_decrement_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* unary_expression::make_rvalue()
@@ -455,6 +482,8 @@ Value* unary_expression::make_lvalue()
 Value* prefix_increment_expression::make_rvalue()
 {
     Value *addr = ue->make_lvalue();
+    if (!addr)
+        error::reject(op);
     Value *oval = builder->CreateLoad(addr);
     Value *nval = create_add(oval, ConstantInt::get(oval->getType(), 1));
     if (!nval)
@@ -465,12 +494,14 @@ Value* prefix_increment_expression::make_rvalue()
 
 Value* prefix_increment_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* prefix_decrement_expression::make_rvalue()
 {
     Value *addr = ue->make_lvalue();
+    if (!addr)
+        error::reject(op);
     Value *oval = builder->CreateLoad(addr);
     Value *nval = create_sub(oval, ConstantInt::get(oval->getType(), 1));
     store(nval, addr);
@@ -479,7 +510,7 @@ Value* prefix_decrement_expression::make_rvalue()
 
 Value* prefix_decrement_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* unary_and_expression::make_rvalue()
@@ -489,7 +520,7 @@ Value* unary_and_expression::make_rvalue()
 
 Value* unary_and_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* unary_star_expression::make_rvalue()
@@ -510,18 +541,20 @@ Value* unary_plus_expression::make_rvalue()
 
 Value* unary_plus_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* unary_minus_expression::make_rvalue()
 {
-    Value* r = ce->make_rvalue();
-    return negative(r);
+    Value* r = negative(ce->make_rvalue());
+    if (!r)
+        error::reject(op);
+    return r;
 }
 
 Value* unary_minus_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* unary_tilde_expression::make_rvalue()
@@ -532,19 +565,20 @@ Value* unary_tilde_expression::make_rvalue()
 
 Value* unary_tilde_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* unary_not_expression::make_rvalue()
 {
     Value* r = ce->make_rvalue();
-    Value *one = ConstantInt::get(r->getType(), 1);
-    return builder->CreateICmpNE(r, one);
+    Value *zero = builder->getInt32(0);
+    r = cast(r, zero->getType());
+    return builder->CreateICmpEQ(r, zero);
 }
 
 Value* unary_not_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* sizeof_expression::make_rvalue()
@@ -555,7 +589,7 @@ Value* sizeof_expression::make_rvalue()
 
 Value* sizeof_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* sizeof_type_expression::make_rvalue()
@@ -565,7 +599,7 @@ Value* sizeof_type_expression::make_rvalue()
 
 Value* sizeof_type_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* cast_expression::make_rvalue()
@@ -604,7 +638,7 @@ Value* mul_expression::make_rvalue()
 
 Value* mul_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* div_expression::make_rvalue()
@@ -619,7 +653,7 @@ Value* div_expression::make_rvalue()
 
 Value* div_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* mod_expression::make_rvalue()
@@ -634,7 +668,7 @@ Value* mod_expression::make_rvalue()
 
 Value* mod_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* additive_expression::make_rvalue()
@@ -659,7 +693,7 @@ Value* add_expression::make_rvalue()
 
 Value* add_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* sub_expression::make_rvalue()
@@ -674,7 +708,7 @@ Value* sub_expression::make_rvalue()
 
 Value* sub_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* shift_expression::make_rvalue()
@@ -696,7 +730,7 @@ Value* rshift_expression::make_rvalue()
 
 Value* rshift_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* lshift_expression::make_rvalue()
@@ -708,7 +742,7 @@ Value* lshift_expression::make_rvalue()
 
 Value* lshift_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* relational_expression::make_rvalue()
@@ -732,7 +766,7 @@ Value* less_expression::make_rvalue()
 
 Value* less_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* greater_expression::make_rvalue()
@@ -746,7 +780,7 @@ Value* greater_expression::make_rvalue()
 
 Value* greater_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* less_equal_expression::make_rvalue()
@@ -760,7 +794,7 @@ Value* less_equal_expression::make_rvalue()
 
 Value* less_equal_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* greater_equal_expression::make_rvalue()
@@ -774,7 +808,7 @@ Value* greater_equal_expression::make_rvalue()
 
 Value* greater_equal_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* equality_expression::make_rvalue()
@@ -798,7 +832,7 @@ Value* equal_expression::make_rvalue()
 
 Value* equal_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* not_equal_expression::make_rvalue()
@@ -812,7 +846,7 @@ Value* not_equal_expression::make_rvalue()
 
 Value* not_equal_expression::make_lvalue()
 {
-    error::reject(op);
+    return nullptr;
 }
 
 Value* and_expression::make_rvalue()
@@ -831,7 +865,7 @@ Value* and_expression::make_lvalue()
 {
     if (ee)
         return ee->make_lvalue();
-    error::reject(op);
+    return nullptr;
 }
 
 Value* exclusive_or_expression::make_rvalue()
@@ -850,7 +884,7 @@ Value* exclusive_or_expression::make_lvalue()
 {
     if (ae)
         return ae->make_lvalue();
-    error::reject(op);
+    return nullptr;
 }
 
 Value* inclusive_or_expression::make_rvalue()
@@ -869,14 +903,14 @@ Value* inclusive_or_expression::make_lvalue()
 {
     if (xe)
         return xe->make_lvalue();
-    error::reject(op);
+    return nullptr;
 }
 
 Value* logical_and_expression::make_lvalue()
 {
     if (oe)
         return oe->make_lvalue();
-    error::reject(op);
+    return nullptr;
 }
 
 Value* logical_and_expression::make_rvalue()
@@ -920,7 +954,7 @@ Value* logical_or_expression::make_lvalue()
 {
     if (ae)
         return ae->make_lvalue();
-    error::reject(op);
+    return nullptr;
 }
 
 Value* logical_or_expression::make_rvalue()
@@ -964,7 +998,7 @@ Value* conditional_expression::make_lvalue()
 {
     if (oe)
         return oe->make_lvalue();
-    error::reject(op);
+    return nullptr;
 }
 
 Value* conditional_expression::make_rvalue()
@@ -994,6 +1028,9 @@ Value* conditional_expression::make_rvalue()
     builder->CreateBr(end_block);
 
     builder->SetInsertPoint(end_block);
+    // TODO: hmm??
+    // ako su tipovi kompatibilni kastaj, inače error
+    // tests/ternary.c
     PHINode *pn = builder->CreatePHI(Type::getInt32Ty(context), 2, "phi");
     pn->addIncoming(tval, true_block);
     pn->addIncoming(fval, false_block);
@@ -1004,7 +1041,7 @@ Value* assignment_expression::make_lvalue()
 {
     if (op.type == INVALID)
         return lhs->make_lvalue();
-    error::reject();
+    return nullptr;
 }
 
 Value* assignment_expression::make_rvalue()
@@ -1013,6 +1050,9 @@ Value* assignment_expression::make_rvalue()
         return lhs->make_rvalue();
 
     Value* l = lhs->make_lvalue(); // conditional_expression
+    if (!l)
+        error::reject(op);
+
     Value* r = rhs->make_rvalue(); // assignment_expression
     if (op.str == "=")
     {
@@ -1275,6 +1315,9 @@ void return_statement::codegen()
     if (expr)
     {
         Value *val = expr->make_rvalue();
+        val = cast(val, function->getReturnType());
+        if (!val)
+            error::reject();
         builder->CreateRet(val);
     }
     else

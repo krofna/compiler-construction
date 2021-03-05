@@ -1,13 +1,13 @@
 int printf(const char*, ...);
 
-void f(void)
+char f(void)
 {
-    printf("hello world");
+    printf("Hello World!\n");
 }
 
 int main(void)
 {
-    void (*ptr)(void);
+    char (*ptr)(void);
     ptr = f;
     ptr();
 }

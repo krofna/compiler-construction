@@ -28,13 +28,15 @@ struct variable_object : object
     Type *type = nullptr;
 };
 
-struct struct_or_union_specifier;
+struct struct_declaration;
 
 struct tag
 {
-    tag(struct_or_union_specifier* sus);
+    tag();
+    void complete(vector<struct_declaration*>& sds);
 
-    string h; // h stands for i Hate this course
+    bool is_complete;
+    string h; // h stands for i Hate my life
     map<string, int> indices;
     StructType *type;
 };
@@ -76,18 +78,17 @@ struct type_qualifier : specifier_qualifier
 struct type_specifier : specifier_qualifier
 {
     virtual void print() = 0;
-    virtual bool is_void() = 0;
 };
 
 struct builtin_type_specifier : type_specifier
 {
     void print();
-    virtual bool is_void();
 
     token tok;
 };
 
 struct declarator;
+struct struct_or_union_specifier;
 
 struct struct_declaration
 {
@@ -102,7 +103,6 @@ struct struct_declaration
 struct struct_or_union_specifier : type_specifier
 {
     void print();
-    virtual bool is_void();
 
     token sou;
     token id;
@@ -151,7 +151,7 @@ struct direct_declarator
     virtual bool is_definition(); // is function pointer
     virtual bool is_identifier();
     virtual bool is_pointer();
-    virtual int num_pointers();
+    virtual Type *gen_type(Type *type);
 
     token tok;
 };
@@ -163,7 +163,7 @@ struct parenthesized_declarator : direct_declarator
     virtual bool is_definition();
     virtual bool is_identifier();
     virtual bool is_pointer();
-    virtual int num_pointers();
+    virtual Type *gen_type(Type *type);
 
     declarator* decl;
 };
@@ -184,7 +184,7 @@ struct function_declarator : direct_declarator
     virtual bool is_identifier();
     virtual bool is_pointer();
     bool is_noparam();
-    virtual int num_pointers();
+    virtual Type *gen_type(Type *type);
 
     direct_declarator* dd;
     vector<parameter_declaration*> pl;
@@ -203,9 +203,9 @@ struct declarator
     token get_identifier();
     bool is_pointer();
     declarator* unparenthesize();
-    int num_pointers();
     Value* codegen();
 
+    Type *gen_type(Type *type);
     vector<pointer*> p;
     direct_declarator* dd = nullptr;
 };
@@ -275,6 +275,7 @@ struct call_expression : postfix_expression
     Value* make_lvalue();
     Value* make_rvalue();
 
+    token opop;
     vector<assignment_expression*> args;
 };
 

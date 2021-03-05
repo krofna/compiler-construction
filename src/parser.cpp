@@ -1,9 +1,5 @@
 #include "parser.h"
 
-#include <iostream>
-//#define dbg(x) cerr << #x << " = " << x << endl
-#define dbg(x)
-
 primary_expression* parser::parse_primary_expression()
 {
     if (tokit->type == IDENTIFIER)
@@ -66,6 +62,7 @@ postfix_expression* parser::parse_postfix_expression()
         else if (check("("))
         {
             call_expression* ce = new call_expression;
+            ce->opop = prev_token();
             ce->pfe = e;
             if (assignment_expression* ae = parse_assignment_expression())
             {
@@ -73,6 +70,7 @@ postfix_expression* parser::parse_postfix_expression()
                 while (check(","))
                     ce->args.push_back(accept(parse_assignment_expression()));
             }
+            ce->op = *tokit;
             accepts(")");
             e = ce;
         }
@@ -615,7 +613,7 @@ declaration* parser::parse_declaration()
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinition
 
-                Type *type = make_ptr(ds->type, d);
+                Type *type = d->gen_type(ds->type);
                 table[identifier.str] = new variable_object(type);
             }
             else
@@ -629,7 +627,7 @@ declaration* parser::parse_declaration()
                 else
                 {
                     function_object *fo = new function_object(false);
-                    fo->type = make_function(ds->type, d);
+                    fo->type = (FunctionType*)d->gen_type(ds->type);
                     table[identifier.str] = fo;
                 }
             }
@@ -1020,7 +1018,7 @@ type_name* parser::parse_type_name()
     tie(tn->type, tn->sus) = handle_type_specifiers(tss);
     if (tn->sus) tn->type = register_type(tn->sus);
     tn->ad = parse_abstract_declarator();
-    tn->type = make_ptr(tn->type, tn->ad);
+    if (tn->ad) tn->type = tn->ad->gen_type(tn->type);
     return tn;
 }
 
@@ -1296,18 +1294,11 @@ function_definition* parser::parse_function_definition()
     else
     {
         function_object* fo = new function_object(true);
-        fo->type = make_function(fd->ds->type, fd->dec);
+        fo->type = (FunctionType*)fd->dec->gen_type(fd->ds->type);
         table[identifier.str] = fo;
     }
 
-    // function with no parameters
-    if (fdecl->is_noparam())
-    {
-        if (fdecl->pl.front()->decl)
-            reject();
-    }
-    // function with parameters
-    else
+    if (!fdecl->is_noparam())
     {
         for (parameter_declaration* pard : fdecl->pl)
         {
@@ -1326,7 +1317,7 @@ function_definition* parser::parse_function_definition()
                 if (table.find(identifier.str) != table.end())
                     error::reject(identifier); // redefinicija
 
-                Type *type = make_ptr(pard->ds->type, decl);
+                Type *type = decl->gen_type(pard->ds->type);
                 table[identifier.str] = new variable_object(type);
             }
             else

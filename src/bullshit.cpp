@@ -9,7 +9,7 @@ int tag_counter;
 Type* valid_type_specifier(vector<type_specifier*> tsps)
 {
     static const vector<pair<vector<vector<string>>, Type*>> valid = {
-        {{{"void"}}, Type::getInt8Ty(context)},
+        {{{"void"}}, Type::getVoidTy(context)},
         {{{"char"}}, Type::getInt8Ty(context)},
         {{{"signed", "char"}}, Type::getInt8Ty(context)},
         {{{"unsigned", "char"}}, Type::getInt8Ty(context)},
@@ -100,11 +100,15 @@ function_object* find_function(const string& id)
     return dynamic_cast<function_object*>(find_var(id));
 }
 
-tag::tag(struct_or_union_specifier* ss)
+tag::tag() : is_complete(false)
 {
     type = StructType::create(context, h = to_string(tag_counter++));
+}
+
+void tag::complete(vector<struct_declaration*>& sds)
+{
     vector<Type*> members;
-    for (struct_declaration* sd : ss->sds)
+    for (struct_declaration* sd : sds)
     {
         for (declarator* dec : sd->ds)
         {
@@ -114,10 +118,11 @@ tag::tag(struct_or_union_specifier* ss)
 
             int next = indices.size();
             indices[tok.str] = next;
-            members.push_back(make_ptr(sd->type, dec));
+            members.push_back(dec->gen_type(sd->type));
         }
     }
     type->setBody(members);
+    is_complete = true;
 }
 
 tag* find_tag(const string& id)
@@ -134,21 +139,37 @@ tag* find_tag(const string& id)
 
 Type* register_type(struct_or_union_specifier* ss)
 {
+    auto& table = scopes.back()->tags;
     if (!ss->has_sds)
     {
         if (tag* t = find_tag(ss->id.str))
             return t->type;
-        return Type::getInt8Ty(context);
+
+        tag *t = new tag;
+        table[ss->id.str] = t;
+        htags[t->h] = t;
+        return t->type;
     }
-
-    auto& table = scopes.back()->tags;
-    auto it = table.find(ss->id.str);
-    if (it != table.end())
-        error::reject(ss->id); // redefinicija
-
-    // definicija
-    tag *t = new tag(ss);
-    table[ss->id.str] = t;
-    htags[t->h] = t;
-    return t->type;
+    else
+    {
+        auto it = table.find(ss->id.str);
+        if (it != table.end())
+        {
+            tag *t = it->second;
+            if (t->is_complete)
+                error::reject(ss->id); // redefinicija
+            else
+                t->complete(ss->sds);
+            return t->type;
+        }
+        else
+        {
+            // definicija
+            tag *t = new tag;
+            t->complete(ss->sds);
+            table[ss->id.str] = t;
+            htags[t->h] = t;
+            return t->type;
+        }
+    }
 }
