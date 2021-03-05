@@ -125,6 +125,9 @@ static bool conditional_adjust(Value *&tval, Value *&fval, BasicBlock *true_bloc
 {
     Type *ttype = tval->getType();
     Type *ftype = fval->getType();
+    if (ttype == ftype)
+        return true;
+
     if (ttype->isStructTy() || ftype->isStructTy())
     {
         if (ttype != ftype)
@@ -1102,6 +1105,9 @@ Value* conditional_expression::make_rvalue()
         error::reject(op);
 
     builder->SetInsertPoint(end_block);
+    if (tval->getType()->isVoidTy())
+        return nullptr;
+
     PHINode *pn = builder->CreatePHI(tval->getType(), 2, "phi");
     pn->addIncoming(tval, true_block);
     pn->addIncoming(fval, false_block);
