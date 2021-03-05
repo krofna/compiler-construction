@@ -575,6 +575,11 @@ Value* unary_and_expression::make_lvalue()
 Value* unary_star_expression::make_rvalue()
 {
     Value *addr = ce->make_rvalue();
+    Type *type = addr->getType();
+    if (!type->isPointerTy())
+        error::reject(op);
+    if (type->getContainedType(0)->isFunctionTy())
+        return addr;
     return builder->CreateLoad(addr);
 }
 
