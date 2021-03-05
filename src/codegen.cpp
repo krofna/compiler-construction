@@ -32,23 +32,35 @@ static Value *create_variable(Type *type, const string &var_name)
     return create_alloca(type, var_name);
 }
 
-static Value *cast(Value *val, Type *type)
+static Value *cast(Value *val, Type *type, BasicBlock *block = nullptr)
 {
     Type *vtype = val->getType();
     if (vtype == type)
         return val;
 
     if (type->isPointerTy() && vtype->isPointerTy())
+    {
+        if (block) builder->SetInsertPoint(block);
         return builder->CreateBitCast(val, type);
+    }
 
     if (type->isPointerTy())
+    {
+        if (block) builder->SetInsertPoint(block);
         return builder->CreateIntToPtr(val, type);
+    }
 
     if (vtype->isPointerTy())
+    {
+        if (block) builder->SetInsertPoint(block);
         return builder->CreatePtrToInt(val, type);
+    }
 
     if (vtype->isIntegerTy() && type->isIntegerTy())
+    {
+        if (block) builder->SetInsertPoint(block);
         return builder->CreateSExtOrTrunc(val, type);
+    }
     return nullptr;
 }
 
@@ -58,7 +70,7 @@ static Value *store(Value *val, Value *ptr)
     return builder->CreateStore(val, ptr);
 }
 
-static bool adjust_int(Value *&lhs, Value *&rhs)
+static bool adjust_int(Value *&lhs, Value *&rhs, BasicBlock *lblock = nullptr, BasicBlock *rblock = nullptr)
 {
     Type *ltype = lhs->getType();
     Type *rtype = rhs->getType();
@@ -67,10 +79,15 @@ static bool adjust_int(Value *&lhs, Value *&rhs)
         return false;
 
     if (rtype->getPrimitiveSizeInBits() > ltype->getPrimitiveSizeInBits())
+    {
+        if (lblock) builder->SetInsertPoint(lblock);
         lhs = builder->CreateSExt(lhs, rhs->getType());
+    }
     if (rtype->getPrimitiveSizeInBits() < ltype->getPrimitiveSizeInBits())
+    {
+        if (rblock) builder->SetInsertPoint(rblock);
         rhs = builder->CreateSExt(rhs, lhs->getType());
-
+    }
     return true;
 }
 
@@ -93,9 +110,36 @@ static bool adjust_ptr(Value *&lhs, Value *&rhs)
 
 static bool adjust_int_ptr(Value *&lhs, Value *&rhs)
 {
+    if (lhs->getType() == rhs->getType())
+        return true;
     if (adjust_int(lhs, rhs))
         return true;
     if (adjust_ptr(lhs, rhs))
+        return true;
+    return false;
+}
+
+static bool conditional_adjust(Value *&tval, Value *&fval, BasicBlock *true_block, BasicBlock *false_block)
+{
+    Type *ttype = tval->getType();
+    Type *ftype = fval->getType();
+    if (ttype->isStructTy() || ftype->isStructTy())
+    {
+        if (ttype != ftype)
+            return false;
+        return true;
+    }
+    if (ttype->isPointerTy() && ftype->isPointerTy())
+    {
+        if (ttype != ftype)
+            return false;
+        return true;
+    }
+    if (ttype->isPointerTy())
+        return fval = cast(fval, ttype, false_block);
+    if (ftype->isPointerTy())
+        return tval = cast(tval, ftype, true_block);
+    if (adjust_int(tval, fval, true_block, false_block))
         return true;
     return false;
 }
@@ -1047,7 +1091,7 @@ Value* conditional_expression::make_rvalue()
     Value *fval = expr3->make_rvalue();
     builder->CreateBr(end_block);
 
-    if (tval->getType() != fval->getType())
+    if (!conditional_adjust(tval, fval, true_block, false_block))
         error::reject(op);
 
     builder->SetInsertPoint(end_block);
