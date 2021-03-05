@@ -53,7 +53,10 @@ for i in os.listdir(testpath):
                 if ccres.returncode:
                     print('Can\'t compile', i, 'with gcc')
                     continue
-                
+
+                if not 'a.out' in os.listdir(testpath):
+                    print('No a.out found for', i)
+                    continue
                 ccres = subpr.run([
                     './a.out'
                 ], capture_output = True)
@@ -62,7 +65,7 @@ for i in os.listdir(testpath):
                     print('Error in output of', i)
                     print(ccres)
                     continue
-                
+
                 res = subpr.run([
                     c4path / './build/debug/c4',
                     '--compile',
@@ -71,6 +74,7 @@ for i in os.listdir(testpath):
                 
                 if res.returncode:
                     print('Can\'t compile', i, 'with c4 --compile')
+                    print(res)
                     continue
                 
                 i = i[0:len(i) - 1]
