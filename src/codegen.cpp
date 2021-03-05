@@ -67,6 +67,8 @@ static Value *cast(Value *val, Type *type, BasicBlock *block = nullptr)
 static Value *store(Value *val, Value *ptr)
 {
     val = cast(val, ptr->getType()->getContainedType(0));
+    if (!val)
+        return nullptr;
     return builder->CreateStore(val, ptr);
 }
 
@@ -1125,7 +1127,8 @@ Value* assignment_expression::make_rvalue()
     Value* r = rhs->make_rvalue(); // assignment_expression
     if (op.str == "=")
     {
-        store(r, l);
+        if (!store(r, l))
+            error::reject(op);
         return r;
     }
     Value *lv = builder->CreateLoad(l);
