@@ -1,4 +1,4 @@
-void printf(const char *c, ...);
+int printf(const char *c, ...);
 
 void swp(int *x, int* y) {
     int c = *x;
