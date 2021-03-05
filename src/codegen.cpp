@@ -580,7 +580,10 @@ Value* prefix_decrement_expression::make_lvalue()
 
 Value* unary_and_expression::make_rvalue()
 {
-    return ce->make_lvalue();
+    Value *val = ce->make_lvalue();
+    if (!val)
+        error::reject(op);
+    return val;
 }
 
 Value* unary_and_expression::make_lvalue()
