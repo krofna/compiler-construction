@@ -124,6 +124,7 @@ struct declaration_specifiers
 {
     void print();
 
+    token tok;
     Type *type;
     struct_or_union_specifier* sus = nullptr;
     vector<declspec*> declspecs;
@@ -899,6 +900,7 @@ struct return_statement : jump_statement
     void print();
     virtual void codegen();
 
+    token nxt;
     expression* expr;
 };
 

@@ -1404,7 +1404,7 @@ void return_statement::codegen()
         Value *val = expr->make_rvalue();
         val = cast(val, function->getReturnType());
         if (!val)
-            error::reject(); // TODO
+            error::reject(nxt);
         builder->CreateRet(val);
     }
     else

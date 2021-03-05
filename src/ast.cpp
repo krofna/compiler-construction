@@ -488,9 +488,9 @@ Type *function_declarator::gen_type(Type *type)
                 if (pd->decl)
                     type = pd->decl->gen_type(type);
                 if (type->isVoidTy())
-                    error::reject(op);
+                    error::reject(pd->ds->tok);
                 if (type->isStructTy() && ((StructType*)type)->isOpaque())
-                    error::reject(op);
+                    error::reject(pd->ds->tok);
                 arguments.push_back(type);
             }
             else

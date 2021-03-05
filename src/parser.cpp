@@ -607,7 +607,7 @@ declaration* parser::parse_declaration()
                 // TOOD: check which tag (union or struct)
                 if (ds->sus)
                 {
-                    if (!d->is_pointer() && !find_tag(ds->sus->id.str))
+                    if (!d->is_pointer() && !find_tag(ds->sus->id.str)->is_complete)
                         error::reject(identifier); // incomplete type
                 }
 
@@ -662,6 +662,7 @@ declaration_specifiers* parser::parse_declaration_specifiers()
 {
     vector<declspec*> declspecs;
     vector<type_specifier*> tsps;
+    token tok = *tokit;
     while (true)
     {
         if (type_specifier* ts = parse_type_specifier())
@@ -691,6 +692,7 @@ declaration_specifiers* parser::parse_declaration_specifiers()
         return nullptr;
 
     declaration_specifiers* ds = new declaration_specifiers;
+    ds->tok = tok;
     ds->declspecs = declspecs;
     tie(ds->type, ds->sus) = handle_type_specifiers(tsps);
     return ds;
@@ -1153,8 +1155,8 @@ selection_statement* parser::parse_selection_statement()
     if (check("if"))
     {
         if_statement* is = new if_statement;
-        is->op = prev_token();
         accepts("(");
+        is->op = *tokit;
         is->expr = accept(parse_expression());
         accepts(")");
         is->stat = accept(parse_statement());
@@ -1165,8 +1167,8 @@ selection_statement* parser::parse_selection_statement()
     if (check("switch"))
     {
         switch_statement* ss = new switch_statement;
-        ss->op = prev_token();
         accepts("(");
+        ss->op = *tokit;
         ss->expr = accept(parse_expression());
         accepts(")");
         switch_statement* old_switch = current_switch;
@@ -1183,8 +1185,8 @@ iteration_statement* parser::parse_iteration_statement()
     if (check("while"))
     {
         while_statement* ws = new while_statement;
-        ws->op = prev_token();
         accepts("(");
+        ws->op = *tokit;
         ws->expr = accept(parse_expression());
         accepts(")");
         iteration_statement* old_loop = current_loop;
@@ -1196,13 +1198,13 @@ iteration_statement* parser::parse_iteration_statement()
     if (check("do"))
     {
         do_while_statement* dws = new do_while_statement;
-        dws->op = prev_token();
         iteration_statement* old_loop = current_loop;
         current_loop = dws;
         dws->stat = accept(parse_statement());
         current_loop = old_loop;
         accepts("while");
         accepts("(");
+        dws->op = *tokit;
         dws->expr = accept(parse_expression());
         accepts(")");
         accepts(";");
@@ -1211,10 +1213,10 @@ iteration_statement* parser::parse_iteration_statement()
     if (check("for"))
     {
         for_statement* fs = new for_statement;
-        fs->op = prev_token();
         accepts("(");
         fs->expr1 = parse_expression();
         accepts(";");
+        fs->op = *tokit;
         fs->expr2 = parse_expression();
         accepts(";");
         fs->expr3 = parse_expression();
@@ -1259,6 +1261,7 @@ jump_statement* parser::parse_jump_statement()
     if (check("return"))
     {
         return_statement* rs = new return_statement;
+        rs->nxt = *tokit;
         rs->expr = parse_expression();
         accepts(";");
         return rs;
@@ -1285,7 +1288,7 @@ function_definition* parser::parse_function_definition()
     if (decl->p.empty())
     {
         struct_or_union_specifier* ss = fd->ds->sus;
-        if (ss && !find_tag(ss->id.str))
+        if (ss && !find_tag(ss->id.str)->is_complete)
             error::reject(identifier);
     }
 
@@ -1314,8 +1317,8 @@ function_definition* parser::parse_function_definition()
             if (!pard)
                 continue;
 
-            if (!pard->decl)
-                reject();
+            if (!pard->decl || !pard->decl->dd)
+                error::reject(pard->ds->tok);
 
             declarator* decl = pard->decl;
             auto& table = scopes.back()->vars;
