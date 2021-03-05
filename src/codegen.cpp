@@ -1419,6 +1419,9 @@ void return_statement::codegen()
 
     if (expr)
     {
+        if (function->getReturnType()->isVoidTy())
+            error::reject(nxt);
+
         Value *val = expr->make_rvalue();
         val = cast(val, function->getReturnType());
         if (!val)
