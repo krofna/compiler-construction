@@ -678,7 +678,7 @@ Value* cast_expression::make_lvalue()
 {
     if (ue)
         return ue->make_lvalue();
-    error::reject(op);
+    return nullptr;
 }
 
 Value* multiplicative_expression::make_rvalue()
