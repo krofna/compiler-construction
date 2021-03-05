@@ -215,7 +215,6 @@ static Value *create_mul(Value *lhs, Value *rhs)
 
 Value* declarator::codegen()
 {
-    // todo: function pointer
     string identifier = get_identifier().str;
     if (dd->is_identifier() || dd->is_definition())
     {
@@ -504,6 +503,8 @@ Value* prefix_decrement_expression::make_rvalue()
         error::reject(op);
     Value *oval = builder->CreateLoad(addr);
     Value *nval = create_sub(oval, ConstantInt::get(oval->getType(), 1));
+    if (!nval)
+        error::reject(op);
     store(nval, addr);
     return builder->CreateLoad(addr);
 }
@@ -1226,6 +1227,8 @@ void while_statement::codegen()
     builder->CreateBr(header_block);
     builder->SetInsertPoint(header_block);
     Value *cond = truncate(expr->make_rvalue());
+    if (!cond)
+        error::reject(op);
     builder->CreateCondBr(cond, body_block, end_block);
 
     builder->SetInsertPoint(body_block);
@@ -1254,6 +1257,8 @@ void do_while_statement::codegen()
     builder->CreateBr(check_block);
     builder->SetInsertPoint(check_block);
     Value *cond = truncate(expr->make_rvalue());
+    if (!cond)
+        error::reject(op);
     builder->CreateCondBr(cond, header_block, end_block);
 
     builder->SetInsertPoint(end_block);
@@ -1276,16 +1281,25 @@ void for_statement::codegen()
     builder->CreateBr(header_block);
 
     builder->SetInsertPoint(header_block);
-    expr1->make_rvalue();
+    if (expr1) expr1->make_rvalue();
     builder->CreateBr(check_block);
 
     builder->SetInsertPoint(check_block);
-    Value *cond = truncate(expr2->make_rvalue());
+    Value *cond;
+    if (expr2)
+    {
+        cond = truncate(expr2->make_rvalue());
+        if (!cond)
+            error::reject(op);
+    }
+    else
+        cond = builder->getInt1(1);
+
     builder->CreateCondBr(cond, body_block, end_block);
 
     builder->SetInsertPoint(body_block);
     stat->codegen();
-    expr3->make_rvalue();
+    if (expr3) expr3->make_rvalue();
     builder->CreateBr(check_block);
 
     builder->SetInsertPoint(end_block);
@@ -1317,7 +1331,7 @@ void return_statement::codegen()
         Value *val = expr->make_rvalue();
         val = cast(val, function->getReturnType());
         if (!val)
-            error::reject();
+            error::reject(); // TODO
         builder->CreateRet(val);
     }
     else

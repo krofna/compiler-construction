@@ -1150,6 +1150,7 @@ selection_statement* parser::parse_selection_statement()
     if (check("if"))
     {
         if_statement* is = new if_statement;
+        is->op = prev_token();
         accepts("(");
         is->expr = accept(parse_expression());
         accepts(")");
@@ -1161,6 +1162,7 @@ selection_statement* parser::parse_selection_statement()
     if (check("switch"))
     {
         switch_statement* ss = new switch_statement;
+        ss->op = prev_token();
         accepts("(");
         ss->expr = accept(parse_expression());
         accepts(")");
@@ -1178,6 +1180,7 @@ iteration_statement* parser::parse_iteration_statement()
     if (check("while"))
     {
         while_statement* ws = new while_statement;
+        ws->op = prev_token();
         accepts("(");
         ws->expr = accept(parse_expression());
         accepts(")");
@@ -1190,6 +1193,7 @@ iteration_statement* parser::parse_iteration_statement()
     if (check("do"))
     {
         do_while_statement* dws = new do_while_statement;
+        dws->op = prev_token();
         iteration_statement* old_loop = current_loop;
         current_loop = dws;
         dws->stat = accept(parse_statement());
@@ -1204,6 +1208,7 @@ iteration_statement* parser::parse_iteration_statement()
     if (check("for"))
     {
         for_statement* fs = new for_statement;
+        fs->op = prev_token();
         accepts("(");
         fs->expr1 = parse_expression();
         accepts(";");

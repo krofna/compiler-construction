@@ -769,11 +769,11 @@ void do_while_statement::print()
 void for_statement::print()
 {
     pout << "for (";
-    expr1->print();
+    if (expr1) expr1->print();
     pout << ";";
-    expr2->print();
+    if (expr2) expr2->print();
     pout << ";";
-    expr3->print();
+    if (expr3) expr3->print();
     pout << ")";
     selection_helper(stat);
 }

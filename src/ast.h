@@ -799,6 +799,8 @@ struct selection_statement : statement
     virtual ~selection_statement() = 0;
     virtual void print() = 0;
     virtual void codegen() = 0;
+
+    token op;
 };
 
 struct if_statement : selection_statement
@@ -826,6 +828,8 @@ struct iteration_statement : statement
     virtual ~iteration_statement() = 0;
     virtual void print() = 0;
     virtual void codegen() = 0;
+
+    token op;
 };
 
 struct while_statement : iteration_statement
@@ -973,5 +977,6 @@ variable_object* find_variable(const string& id);
 function_object* find_function(const string& id);
 tag* find_tag(const string& id);
 Type* register_type(struct_or_union_specifier* ss);
+Type *valid_type_specifier(vector<type_specifier*> tsps);
 
 extern vector<scope*> scopes;
