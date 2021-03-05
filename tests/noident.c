@@ -1,0 +1,6 @@
+int (void)
+{
+}
+int main()
+{
+}
