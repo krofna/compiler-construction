@@ -667,6 +667,7 @@ Value* cast_expression::make_rvalue()
 {
     if (ue)
         return ue->make_rvalue();
+
     Value *v = cast(ce->make_rvalue(), tn->type);
     if (!v)
         error::reject(op);
@@ -1106,7 +1107,7 @@ Value* conditional_expression::make_rvalue()
 
     builder->SetInsertPoint(end_block);
     if (tval->getType()->isVoidTy())
-        return nullptr;
+        return tval;
 
     PHINode *pn = builder->CreatePHI(tval->getType(), 2, "phi");
     pn->addIncoming(tval, true_block);
