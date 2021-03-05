@@ -32,6 +32,15 @@ static Value *create_variable(Type *type, const string &var_name)
     return create_alloca(type, var_name);
 }
 
+static Value *extend(Value *val, Type *type)
+{
+    Type *vtype = val->getType();
+    if (vtype->isIntegerTy(1))
+        return builder->CreateZExt(val, type);
+    else
+        return builder->CreateSExt(val, type);
+}
+
 static Value *cast(Value *val, Type *type, BasicBlock *block = nullptr)
 {
     Type *vtype = val->getType();
@@ -59,6 +68,8 @@ static Value *cast(Value *val, Type *type, BasicBlock *block = nullptr)
     if (vtype->isIntegerTy() && type->isIntegerTy())
     {
         if (block) builder->SetInsertPoint(block);
+        if (vtype->getPrimitiveSizeInBits() < type->getPrimitiveSizeInBits())
+            return extend(val, type);
         return builder->CreateSExtOrTrunc(val, type);
     }
     return nullptr;
@@ -83,12 +94,12 @@ static bool adjust_int(Value *&lhs, Value *&rhs, BasicBlock *lblock = nullptr, B
     if (rtype->getPrimitiveSizeInBits() > ltype->getPrimitiveSizeInBits())
     {
         if (lblock) builder->SetInsertPoint(lblock);
-        lhs = builder->CreateSExt(lhs, rhs->getType());
+        lhs = extend(lhs, rhs->getType());
     }
     if (rtype->getPrimitiveSizeInBits() < ltype->getPrimitiveSizeInBits())
     {
         if (rblock) builder->SetInsertPoint(rblock);
-        rhs = builder->CreateSExt(rhs, lhs->getType());
+        rhs = extend(rhs, lhs->getType());
     }
     return true;
 }
