@@ -21,6 +21,7 @@ c4path = testpath.parent
 
 unxpass = []
 unxfail = []
+unxdiff = []
 
 for i in os.listdir(testpath):
     if '.c' in i:
@@ -31,7 +32,7 @@ for i in os.listdir(testpath):
         ], capture_output = True)
 
         ccres = subpr.run([
-            'cc',
+            'gcc',
             '-fsyntax-only',
             '--pedantic',
             testpath / i
@@ -43,6 +44,54 @@ for i in os.listdir(testpath):
         else:
             if ccres.returncode:
                 unxpass.append(i)
+            else:
+                ccres = subpr.run([
+                    'gcc',
+                    '--pedantic',
+                    testpath / i
+                ], capture_output = True)
+                if ccres.returncode:
+                    print('Can\'t compile', i, 'with gcc')
+                    continue
+                
+                ccres = subpr.run([
+                    './a.out'
+                ], capture_output = True)
+
+                if ccres.returncode:
+                    print('Error in output of', i)
+                    print(ccres)
+                    continue
+                
+                res = subpr.run([
+                    c4path / './build/debug/c4',
+                    '--compile',
+                    testpath / i
+                ], capture_output = True)
+                
+                if res.returncode:
+                    print('Can\'t compile', i, 'with c4 --compile')
+                    continue
+                
+                i = i[0:len(i) - 1]
+                res = subpr.run([
+                    c4path / 'llvm/install/bin/clang',
+                    '-o',
+                    'out',
+                    i + 'll'
+                ], capture_output = True)
+                if res.returncode:
+                    print('Error in', i, 'while llvm/install...')
+                    continue
+                res = subpr.run([
+                    './out'
+                ], capture_output = True)
+                if res.returncode:
+                    print('Error in output of llvm', i)
+                    continue
+                if ccres.stdout != res.stdout:
+                    unxdiff.append(i[0:len(i) - 2] + "c")
+                    
                 
 if __name__ == '__main__':
     print(f'Unexpected {bcolors.FAIL}FAIL{bcolors.ENDC}:')
@@ -53,6 +102,12 @@ if __name__ == '__main__':
     print(f'Unexpected {bcolors.OKCYAN}PASS{bcolors.ENDC}:')
     pprint(unxpass)
     print()
+
+    print(f'Unexpected {bcolors.FAIL}DIFF{bcolors.ENDC}:')
+    pprint(unxdiff)
+    print()
+
+    
 
     if output_cerr:
         print(f'{bcolors.HEADER}{bcolors.BOLD}cc errors{bcolors.ENDC}:')
