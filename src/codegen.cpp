@@ -1430,6 +1430,9 @@ void return_statement::codegen()
     }
     else
     {
+        if (!function->getReturnType()->isVoidTy())
+            error::reject(nxt);
+
         builder->CreateRetVoid();
     }
 
