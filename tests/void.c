@@ -5,7 +5,7 @@ void f(void)
     printf("hello ");
 }
 
-void* g()
+void* g(void)
 {
     printf("world");
     return 0;
