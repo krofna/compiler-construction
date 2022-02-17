@@ -1306,7 +1306,7 @@ void if_statement::codegen()
 void switch_statement::codegen()
 {
 }
-
+ 
 void while_statement::codegen()
 {
     Function *function = builder->GetInsertBlock()->getParent();
